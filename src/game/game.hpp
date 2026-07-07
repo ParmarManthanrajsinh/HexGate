@@ -8,7 +8,7 @@
 #include "gates.hpp"
 #include "circuit.hpp"
 #include "wires.hpp"
-#include "ui.hpp"
+// #include "ui.hpp"
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>

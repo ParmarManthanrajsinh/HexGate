@@ -5,7 +5,7 @@
 #include "wires.hpp"
 #include "ui.hpp"
 #include <cmath>
-#include <cstdio>
+// #include <cstdio>
 #include <algorithm>
 #include <raylib.h>
 
