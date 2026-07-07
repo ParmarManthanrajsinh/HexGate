@@ -1,17 +1,21 @@
 #pragma once
+
 #include <raylib.h>
 #include <vector>
 #include <unordered_map>
+
 #include "hex_grid.hpp"
 #include "gates.hpp"
 #include "circuit.hpp"
 #include "wires.hpp"
 #include "ui.hpp"
+
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
 #endif
 
-struct PinHit {
+struct PinHit 
+{
     int  source_type = -1;
     int  source_id   = 0;
     int  pin_index   = 0;
@@ -20,7 +24,8 @@ struct PinHit {
     bool IsValid() const { return source_type >= 0; }
 };
 
-class Game {
+class Game 
+{
 public:
     Game();
     ~Game();

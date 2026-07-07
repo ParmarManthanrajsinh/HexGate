@@ -32,71 +32,89 @@ Game::Game()
     Reset();
 }
 
-Game::~Game() {
-}
+Game::~Game() { }
 
 // ─────────────────────────────────────────────
 // State management
 // ─────────────────────────────────────────────
 
-void Game::Reset() {
+void Game::Reset() 
+{
     gates.clear();
     wires.clear();
     gate_outputs.clear();
+
     for (int i = 0; i < 4; i++) input_bits[i] = 0;
     for (int i = 0; i < 4; i++) output_bits[i] = 0;
-    gate_id_counter = 1;
+
+    gate_id_counter     = 1;
     selected_gate_index = -1;
-    wire_drag_state = {};
-    hovered_cell = {};
-    hovered_pin = {};
-    solved = false;
-    solved_pulse = 0;
+    wire_drag_state     = {};
+    hovered_cell        = {};
+    hovered_pin         = {};
+    solved              = false;
+    solved_pulse        = 0;
 
     target_hex = GetRandomValue(1, 15);
     if (target_hex == 0) target_hex = 10;
+
     Evaluate();
 }
 
-void Game::Evaluate() {
+void Game::Evaluate() 
+{
     int hex_val = EvaluateCircuit(gates, wires, input_bits, gate_outputs, output_bits);
     bool was_solved = solved;
     solved = (hex_val == target_hex);
     if (solved && !was_solved) solved_pulse = 1.0f;
 }
 
-Gate* Game::FindGateAt(int row, int col) {
+Gate* Game::FindGateAt(int row, int col) 
+{
     for (auto& g : gates)
+    {
         if (g.row == row && g.col == col) return &g;
+    }
     return nullptr;
 }
 
-Gate* Game::FindGateById(int id) {
+Gate* Game::FindGateById(int id) 
+{
     for (auto& g : gates)
+    {
         if (g.id == id) return &g;
+    }
     return nullptr;
 }
 
-void Game::RemoveWiresForGate(int gate_id) {
-    wires.erase(
+void Game::RemoveWiresForGate(int gate_id)
+{
+    wires.erase
+    (
         std::remove_if(wires.begin(), wires.end(),
-            [gate_id](const Wire& w) {
+            [gate_id](const Wire& w) 
+            {
                 return (w.from_type == 1 && w.from_id == gate_id) ||
                        (w.to_type == 0 && w.to_id == gate_id);
             }),
-        wires.end());
+        wires.end()
+    );
 }
 
-PinHit Game::FindPinAt(Vector2 pos) {
+PinHit Game::FindPinAt(Vector2 pos) 
+{
     // Input node output pins
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) 
+    {
         Vector2 p = GetInputNodeOutputPin(i);
         if (Dist(pos, p) < K_PIN_HIT_RADIUS) return { 0, i, 0, false };
     }
 
     // Gate pins
-    for (const auto& gate : gates) {
-        for (int pi = 0; pi < GetGateInputCount(gate.type); pi++) {
+    for (const auto& gate : gates) 
+    {
+        for (int pi = 0; pi < GetGateInputCount(gate.type); pi++) 
+        {
             Vector2 p = GetGateInputPinPos(gate, pi);
             if (Dist(pos, p) < K_PIN_HIT_RADIUS) return { 1, gate.id, pi, true };
         }
@@ -105,7 +123,8 @@ PinHit Game::FindPinAt(Vector2 pos) {
     }
 
     // Output node input pins
-    for (int b = 0; b < 4; b++) {
+    for (int b = 0; b < 4; b++) 
+    {
         Vector2 p = GetOutputNodeInputPin(b);
         if (Dist(pos, p) < K_PIN_HIT_RADIUS) return { 2, 0, b, true };
     }
@@ -117,10 +136,13 @@ PinHit Game::FindPinAt(Vector2 pos) {
 // Event handlers
 // ─────────────────────────────────────────────
 
-void Game::HandleClick(Vector2 pos) {
+void Game::HandleClick(Vector2 pos) 
+{
     // Input node toggles
-    for (int i = 0; i < 4; i++) {
-        if (Dist(pos, { K_INPUT_X, GetInputNodeY(i) }) <= 20) {
+    for (int i = 0; i < 4; i++) 
+    {
+        if (Dist(pos, { K_INPUT_X, GetInputNodeY(i) }) <= 20) 
+        {
             input_bits[i] ^= 1;
             Evaluate();
             return;
@@ -130,9 +152,11 @@ void Game::HandleClick(Vector2 pos) {
     PinHit clicked_pin = FindPinAt(pos);
 
     // Wire drag in progress
-    if (wire_drag_state.IsActive()) {
-        if (clicked_pin.IsValid() && clicked_pin.is_input) {
-            Wire w;
+    if (wire_drag_state.IsActive()) 
+    {
+        if (clicked_pin.IsValid() && clicked_pin.is_input) 
+        {
+            Wire w{};
             w.from_type = wire_drag_state.from_type;
             w.from_id   = wire_drag_state.from_id;
             w.from_pin  = wire_drag_state.from_pin;
@@ -141,24 +165,32 @@ void Game::HandleClick(Vector2 pos) {
             w.to_pin    = clicked_pin.pin_index;
 
             bool is_self = (w.from_type == 1 && w.to_type == 0 && w.from_id == w.to_id);
-            if (!is_self) {
-                wires.erase(
+
+            if (!is_self) 
+            {
+                wires.erase
+                (
                     std::remove_if(wires.begin(), wires.end(),
-                        [&](const Wire& ex) {
+                        [&](const Wire& ex) 
+                        {
                             return ex.to_type == w.to_type && ex.to_id == w.to_id && ex.to_pin == w.to_pin;
                         }),
-                    wires.end());
+                    wires.end()
+                );
                 wires.push_back(w);
             }
             wire_drag_state = {};
             Evaluate();
             return;
         }
-        if (clicked_pin.IsValid() && !clicked_pin.is_input) {
+        if (clicked_pin.IsValid() && !clicked_pin.is_input) 
+        {
             Vector2 pin_pos;
+
             if (clicked_pin.source_type == 0) pin_pos = GetInputNodeOutputPin(clicked_pin.source_id);
             else if (auto* g = FindGateById(clicked_pin.source_id)) pin_pos = GetGateOutputPinPos(*g);
             else return;
+
             wire_drag_state = { clicked_pin.source_type, clicked_pin.source_id, clicked_pin.pin_index, pin_pos.x, pin_pos.y, true };
             return;
         }
@@ -166,11 +198,14 @@ void Game::HandleClick(Vector2 pos) {
     }
 
     // Start wire from output pin
-    if (clicked_pin.IsValid() && !clicked_pin.is_input) {
+    if (clicked_pin.IsValid() && !clicked_pin.is_input) 
+    {
         Vector2 pin_pos;
+
         if (clicked_pin.source_type == 0) pin_pos = GetInputNodeOutputPin(clicked_pin.source_id);
         else if (auto* g = FindGateById(clicked_pin.source_id)) pin_pos = GetGateOutputPinPos(*g);
         else return;
+
         wire_drag_state = { clicked_pin.source_type, clicked_pin.source_id, clicked_pin.pin_index, pin_pos.x, pin_pos.y, true };
         selected_gate_index = -1;
         return;

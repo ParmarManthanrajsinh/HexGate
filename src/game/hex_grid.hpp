@@ -25,7 +25,8 @@ constexpr float   K_OUTPUT_PIN_X   = 631.0f;
 constexpr float   K_PIN_RADIUS     = 7.0f;
 constexpr float   K_PIN_HIT_RADIUS = 12.0f;
 
-struct HexCell {
+struct HexCell 
+{
     int row = -1;
     int col = -1;
 
