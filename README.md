@@ -1,106 +1,58 @@
-## $(Game Title)
+## Hex Merge — Logic Gate Puzzle
 
-![$(Game Title)](screenshots/screenshot000.png "$(Game Title)")
+![Hex Merge](screenshots/screenshot000.png "Hex Merge")
 
 ### Description
 
-$(Your Game Description)
+Build digital logic circuits on a hex grid to match target hex values. Connect input bits through gates (AND, OR, NOT, XOR, NAND, NOR, XNOR) and wire them to the output. Solve puzzles by constructing the correct logic network.
 
 ### Features
 
-- $(Game Feature 01)
-- $(Game Feature 02)
-- $(Game Feature 03)
+- Hex-based grid for gate placement and wiring
+- 7 logic gate types with distinct visual shapes
+- Drag-to-wire connection system between gates
+- Real-time circuit evaluation with animated signal propagation
+- 4-bit input/output with hex value display
+- Randomized target values for replayability
+- Retro pixel-art aesthetic with glow effects
 
-### Controls
+### Controls (not finalized)
 
-Keyboard:
-- $(Game Control 01)
-- $(Game Control 02)
-- $(Game Control 03)
+Keyboard: 
+- `1`–`4` — Toggle input bits
+- `R` — Randomize target hex value
+- `T` — Cycle target hex value
+- `Esc` — Cancel selection
 
-### Build & Run
+Mouse:
+- Click a gate in the palette → click a hex cell to place it
+- Click an output pin → click an input pin to create a wire
+- Click an input pin that already has a wire → remove that wire
+- Right-click a placed gate → delete it and its wires
+- Click an input node (left side) → toggle its bit
 
-#### CMake (all platforms, recommended)
+### Play
 
-Raylib is fetched automatically by CMake — no manual install needed.
-
-```sh
-cmake -B build
-cmake --build build
-./build/raylib-game-template/raylib-game-template
-```
-
-#### WebAssembly (Emscripten)
-
-Requires [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.html) installed.
-
-```powershell
-# Activate Emscripten environment
-C:\raylib\emsdk\emsdk_env.ps1
-
-# Configure with emcmake wrapper
-mkdir -Force build-web
-cd build-web
-emcmake cmake .. -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release
-
-# Build
-cmake --build .
-```
-
-Output files in `build-web/raylib-game-template/`:
-- `raylib-game-template.html` — open in browser, or serve locally
-- `raylib-game-template.wasm` — WebAssembly binary
-- `raylib-game-template.js` — Emscripten loader
-- `raylib-game-template.data` — game resources
-
-To build and run automatically on Linux:
-
-```bash
-./scripts/build-web-linux.sh
-```
-
-The script builds with Emscripten and Ninja, starts a local server, and opens:
-
-```text
-http://localhost:3000/raylib-game-template.html
-```
-
-To serve manually on Linux:
- 
-```powershell
-npx serve build-web/raylib-game-template
-```
-
-Then open `http://localhost:3000/raylib-game-template.html`.
-
-Then open `http://localhost:3000/raylib-game-template.html`.
-
-#### Visual Studio 2022 (Windows)
-
-Open `projects/VS2022/raylib_game.sln`, set `raylib_game` as startup project, and press **Local Windows Debugger**.
+Open `DemoPrototype.html` in any modern browser — no build step required.
 
 ### Screenshots
 
-_TODO: Show your game to the world, animated GIFs recommended!._
+_TODO: Add gameplay screenshots or animated GIFs._
 
 ### Developers
 
-- Manthan - $(Role/Tasks Developed)
-- Dhaval - $(Role/Tasks Developed)
-- Nagendra - $(Role/Tasks Developed)
-- Nandana - $(Role/Tasks Developed)
+- Manthan — Game Design & Logic
+- Dhaval — UI & Interaction
+- Nagendra — Circuit Evaluation
+- Nandana — Visual Effects & Art
 
 ### Links
 
 - YouTube Gameplay: $(YouTube Link)
 - itch.io Release: $(itch.io Game Page)
-- Steam Release: $(Steam Game Page)
 
 ### License
 
 This project sources are licensed under an unmodified zlib/libpng license, which is an OSI-certified, BSD-like license that allows static linking with closed source software. Check [LICENSE](LICENSE) for further details.
 
-$(Additional Licenses)
-
-*Copyright (c) $(Year) $(User Name) ($(User Twitter/GitHub Name))*
+*Copyright (c) 2025 Hex Merge Team*
