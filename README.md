@@ -54,11 +54,25 @@ Output files in `build-web/raylib-game-template/`:
 - `raylib-game-template.js` — Emscripten loader
 - `raylib-game-template.data` — game resources
 
-To serve locally:
+To build and run automatically on Linux:
+
+```bash
+./scripts/build-web-linux.sh
+```
+
+The script builds with Emscripten and Ninja, starts a local server, and opens:
+
+```text
+http://localhost:3000/raylib-game-template.html
+```
+
+To serve manually on Linux:
 
 ```powershell
 npx serve build-web/raylib-game-template
 ```
+
+Then open `http://localhost:3000/raylib-game-template.html`.
 
 Then open `http://localhost:3000/raylib-game-template.html`.
 
