@@ -8,7 +8,7 @@
 #include "gates.h"
 #include "hex_grid.h"
 #include "wires.h"
-// #include "ui.hpp"
+#include "assets.h"
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
@@ -61,6 +61,7 @@ class Game
 
     // UI state
     int selected_gate_index; // -1 = none
+    int dragging_gate_id;    // -1 = none
     t_WireDragState wire_drag_state;
     t_HexCell hovered_cell;
     t_PinHit hovered_pin;
@@ -70,6 +71,7 @@ class Game
     // Juice
     std::vector<Particle> particles;
     float screen_shake_time;
+    RenderTexture2D render_target;
 
     // Helpers
     void Reset();

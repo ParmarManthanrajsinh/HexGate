@@ -31,11 +31,15 @@ Game::Game()
   ghost_pos{-100, -100},
   screen_shake_time(0)
 {
+    render_target = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
     for (int i = 0; i < 4; i++) input_bits[i] = 0;
     for (int i = 0; i < 4; i++) output_bits[i] = 0;
     Reset();
 }
-Game::~Game() {}
+Game::~Game()
+{
+    UnloadRenderTexture(render_target);
+}
 
 void Game::Reset()
 {
@@ -48,11 +52,14 @@ void Game::Reset()
 
     gate_id_counter = 1;
     selected_gate_index = -1;
+    dragging_gate_id = -1;
     wire_drag_state = {};
     hovered_cell = {};
     hovered_pin = {};
     solved = false;
     solved_pulse = 0;
+    anim_time = 0;
+    screen_shake_time = 0;
     target_hex = GetRandomValue(1, 15);
     if (target_hex == 0) target_hex = 10;
     Evaluate();
@@ -336,8 +343,17 @@ void Game::HandleClick(Vector2 pos)
         return;
     }
 
-    if (!clicked_pin.IsValid() && !cell.IsValid())
+    if (!clicked_pin.IsValid() && cell.IsValid())
     {
+        if (selected_gate_index == -1)
+        {
+            t_Gate* gate = FindGateAt(cell.row, cell.col);
+            if (gate)
+            {
+                dragging_gate_id = gate->id;
+                PlaySfx(SfxType::DISCONNECT_WIRE); // subtle click sound
+            }
+        }
         wire_drag_state = {};
     }
 }
@@ -383,6 +399,30 @@ void Game::Update()
         HandleClick(mouse_pos);
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON))
         HandleRightClick(mouse_pos);
+
+    if (dragging_gate_id != -1)
+    {
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+        {
+            if (hovered_cell.IsValid())
+            {
+                t_Gate* existing = FindGateAt(hovered_cell.row, hovered_cell.col);
+                if (!existing || existing->id == dragging_gate_id)
+                {
+                    t_Gate* g = FindGateById(dragging_gate_id);
+                    if (g)
+                    {
+                        g->row = hovered_cell.row;
+                        g->col = hovered_cell.col;
+                        SpawnParticles(GetHexCenter(hovered_cell.row, hovered_cell.col), {0, 255, 255, 255}, 15);
+                        PlaySfx(SfxType::PLACE_GATE);
+                    }
+                }
+            }
+            dragging_gate_id = -1;
+            Evaluate();
+        }
+    }
 
     if (wire_drag_state.IsActive())
     {
@@ -449,7 +489,7 @@ void Game::Update()
 
 void Game::Draw()
 {
-    BeginDrawing();
+    BeginTextureMode(render_target);
     ClearBackground({13, 13, 26, 255});
 
     Camera2D camera = {};
@@ -484,6 +524,8 @@ void Game::Draw()
     // Draw gates + pins
     for (const auto& gate : gates)
     {
+        if (gate.id == dragging_gate_id) continue; // Draw dragged gate later
+
         Vector2 c = GetHexCenter(gate.row, gate.col);
         float scale = 1.0f;
         float age = anim_time - gate.spawn_time;
@@ -539,52 +581,44 @@ void Game::Draw()
         t_Gate fg = {0, ft, 0, 0};
         float gw = HEX_SIZE * 1.3f;
         float gh = HEX_SIZE * SQRT3 * 0.75f;
-        float pulse = 0.6f + 0.4f * sinf(anim_time * 4);
-
+        
+        Vector2 gp = mouse_pos;
         if (hovered_cell.IsValid() && !cell_occupied)
         {
             Vector2 c = GetHexCenter(hovered_cell.row, hovered_cell.col);
-
+            
+            // Draw highlight under cell
+            float pulse = 0.6f + 0.4f * sinf(anim_time * 4);
             DrawFilledHexagon(c, HEX_SIZE + 4, ColorAlpha(SKYBLUE, 0.06f * pulse));
             DrawFilledHexagon(c, HEX_SIZE - 2, ColorAlpha(SKYBLUE, 0.2f * pulse));
             DrawHexOutline(c, HEX_SIZE - 1, 3.0f, ColorAlpha(SKYBLUE, 0.8f * pulse));
 
-            DrawGateShape(fg, c.x - gw / 2, c.y - gh / 2, gw, gh, 0, 0.75f);
-
-            DrawCircleV(c, 3, ColorAlpha(SKYBLUE, 0.9f));
-            DrawCircleLines(static_cast<int>(c.x), static_cast<int>(c.y), 7, ColorAlpha(SKYBLUE, 0.5f * pulse));
+            // Magnetic snap
+            gp.x = c.x * 0.5f + mouse_pos.x * 0.5f;
+            gp.y = c.y * 0.5f + mouse_pos.y * 0.5f;
         }
-        else if (hovered_cell.IsValid())
+
+        DrawGateShape(fg, gp.x - gw / 2, gp.y - gh / 2, gw, gh, 0, 0.8f);
+    }
+
+    // Draw dragged gate at mouse
+    if (dragging_gate_id != -1)
+    {
+        t_Gate* g = FindGateById(dragging_gate_id);
+        if (g)
         {
-            Vector2 c = GetHexCenter(hovered_cell.row, hovered_cell.col);
-
-            DrawFilledHexagon(c, HEX_SIZE + 4, ColorAlpha(RED, 0.06f));
-            DrawFilledHexagon(c, HEX_SIZE - 2, ColorAlpha(RED, 0.12f));
-            DrawHexOutline(c, HEX_SIZE - 1, 2.5f, ColorAlpha(RED, 0.5f * pulse));
-
-            DrawGateShape(fg, c.x - gw / 2, c.y - gh / 2, gw, gh, 0, 0.4f);
-
-            DrawLineEx({c.x - 10, c.y - 10}, {c.x + 10, c.y + 10}, 2, ColorAlpha(RED, 0.5f * pulse));
-            DrawLineEx({c.x + 10, c.y - 10}, {c.x - 10, c.y + 10}, 2, ColorAlpha(RED, 0.5f * pulse));
-        }
-        else
-        {
-            float s = 0.55f;
-            float bob = sinf(anim_time * 3) * 2;
-            Vector2 gp = {ghost_pos.x, ghost_pos.y + bob};
-
-            DrawCircleV(gp, 14, ColorAlpha(SKYBLUE, 0.08f));
-            DrawGateShape(fg, gp.x - gw * s / 2, gp.y - gh * s / 2, gw * s, gh * s, 0, 0.45f);
-
-            const char* name = GateTypeToString(ft);
-            Font font = GetFontDefault();
-            Vector2 ts = MeasureTextEx(font, name, 8, 1);
-            DrawTextShadowed
-            (
-                font, name, static_cast<int>(gp.x - ts.x / 2),
-                static_cast<int>(gp.y + gh * s / 2 + 6), 8,
-                ColorAlpha(WHITE, 0.5f)
-            );
+            float gw = HEX_SIZE * 1.3f;
+            float gh = HEX_SIZE * SQRT3 * 0.75f;
+            // Snap to valid cell if hovering
+            Vector2 gp = mouse_pos;
+            if (hovered_cell.IsValid() && (!FindGateAt(hovered_cell.row, hovered_cell.col) || FindGateAt(hovered_cell.row, hovered_cell.col)->id == dragging_gate_id))
+            {
+                gp = GetHexCenter(hovered_cell.row, hovered_cell.col);
+                gp.x = gp.x * 0.5f + mouse_pos.x * 0.5f; // Slight magnetic pull
+                gp.y = gp.y * 0.5f + mouse_pos.y * 0.5f;
+            }
+            int out_val = gate_outputs.count(g->id) ? gate_outputs.at(g->id) : 0;
+            DrawGateShape(*g, gp.x - gw / 2, gp.y - gh / 2, gw, gh, out_val, 0.8f);
         }
     }
 
@@ -628,6 +662,19 @@ void Game::Draw()
     }
 
     EndMode2D();
+    EndTextureMode();
+
+    BeginDrawing();
+    ClearBackground(BLACK);
+    BeginShaderMode(GetBloomShader());
+    DrawTextureRec
+    (
+        render_target.texture, 
+        { 0, 0, static_cast<float>(render_target.texture.width), static_cast<float>(-render_target.texture.height) }, 
+        { 0, 0 }, 
+        WHITE
+    );
+    EndShaderMode();
     EndDrawing();
 }
 

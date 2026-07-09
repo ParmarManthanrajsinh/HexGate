@@ -1,6 +1,7 @@
 #include "game/game.h"
 #include "game/hex_grid.h"
 #include "game/audio.h"
+#include "game/assets.h"
 
 static void UpdateDrawFrame(Game *game)
 {
@@ -24,6 +25,7 @@ int main()
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hex Merge");
     InitAudio();
+    InitGameAssets();
     Game game;
 
 #if defined(PLATFORM_WEB)
@@ -33,6 +35,7 @@ int main()
     SetTargetFPS(60);
     while (!game.ShouldClose()) UpdateDrawFrame(&game);
 #endif
+    UnloadGameAssets();
     ShutdownAudio();
     CloseWindow();
     return 0;

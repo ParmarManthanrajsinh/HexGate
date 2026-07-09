@@ -97,6 +97,15 @@ namespace
             DrawLineEx(p2_start, p2, line_width + 6, glow_color);
         }
 
+        // Physical dark base wire
+        DrawLineEx(p1, p1_end, 6.0f, {15, 20, 30, 255});
+        DrawLineBezier(p1_end, p2_start, 6.0f, {15, 20, 30, 255});
+        DrawLineEx(p2_start, p2, 6.0f, {15, 20, 30, 255});
+
+        // Glowing inner core
+        line_width = has_signal ? 3.0f : 1.5f;
+        draw_color = has_signal ? ColorAlpha({0, 255, 255, 255}, 0.9f) : Color{30, 60, 100, 255};
+        
         DrawLineEx(p1, p1_end, line_width, draw_color);
         DrawLineBezier(p1_end, p2_start, line_width, draw_color);
         DrawLineEx(p2_start, p2, line_width, draw_color);
@@ -130,7 +139,9 @@ namespace
                 else
                     dot_pos = {p2_start.x + (p2.x - p2_start.x) * ((t - 0.8f) / 0.2f), p2_start.y};
                 
-                DrawCircleV(dot_pos, 4, WHITE);
+                // Draw glowing pulse
+                DrawCircleV(dot_pos, 7.0f, ColorAlpha({0, 255, 255, 255}, 0.5f));
+                DrawCircleV(dot_pos, 3.5f, WHITE);
             }
         }
     }
@@ -175,6 +186,7 @@ void DrawAllWires
 
 void DrawGhostWire(Vector2 from, Vector2 mouse_pos)
 {
-    Color ghost_color = {0, 245, 212, 200}; // rgba(0,245,212,0.8)
-    DrawBezierWire(from, mouse_pos, ghost_color, 1.0f, 3.0f, true, 0.0f, false);
+    float pulse = 0.5f + 0.5f * sinf(GetTime() * 10.0f);
+    Color ghost_color = ColorAlpha({0, 245, 212, 255}, 0.3f + 0.5f * pulse);
+    DrawBezierWire(from, mouse_pos, ghost_color, 1.0f, 3.0f + pulse * 1.5f, true, GetTime() * 2.0f, true);
 }

@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring> // IWYU pragma: keep
 #include <raylib.h>
+#include "assets.h"
 
 void DrawBackground()
 {
@@ -11,13 +12,23 @@ void DrawBackground()
     DrawRectangleGradientV(0, 0, 720, 720, {5, 8, 20, 255}, {12, 18, 38, 255});
 
     // Faint hex pattern in background
+    float bg_offset = GetTime() * 2.0f;
     for (int y = -20; y < 750; y += 40)
     {
         for (int x = -20; x < 750; x += 35)
         {
             float x_offset = (y % 80 == 0) ? 0 : 17.5f;
-            DrawHexOutline({x + x_offset, static_cast<float>(y)}, 16.0f, 1.0f, {30, 45, 80, 30});
+            DrawHexOutline({x + x_offset - bg_offset, static_cast<float>(y)}, 16.0f, 1.0f, {30, 45, 80, 30});
         }
+    }
+
+    // Drifting dust particles
+    float time = GetTime();
+    for(int i = 0; i < 50; i++) 
+    {
+        float px = fmodf(static_cast<float>(i * 137) + time * 10.0f * (1.0f + (i%3)*0.5f), 720.0f);
+        float py = fmodf(static_cast<float>(i * 93) - time * 5.0f * (1.0f + (i%5)*0.2f) + 720.0f, 720.0f);
+        DrawCircleV({px, py}, (i%2==0) ? 1.5f : 0.8f, {0, 200, 255, static_cast<unsigned char>(10 + (i%20))});
     }
 
     // Info bar background
@@ -73,7 +84,7 @@ void DrawBackground()
 
 void DrawInfoBar(int target_hex, int current_hex, bool solved, float anim_time)
 {
-    Font font = GetFontDefault();
+    Font font = GetGameFont();
     char target_text[32];
     snprintf(target_text, sizeof(target_text), "Target: 0x%X", target_hex);
     DrawTextShadowed(font, target_text, 20, 10, 18, {136, 153, 187, 255});
@@ -152,7 +163,7 @@ static void DrawPin(Vector2 pos, bool active, bool is_hovered, bool is_connected
         {
             DrawTextShadowed
             (
-                GetFontDefault(), 
+                GetGameFont(), 
                 "X", 
                 static_cast<int>(pos.x) - 4,
                 static_cast<int>(pos.y) - 5,
@@ -181,7 +192,7 @@ void DrawInputNodes(int input_bits[4], const t_Pin* hovered_pin, float anim_time
         snprintf(label, sizeof(label), "IN%d", i);
         DrawTextShadowed
         (
-            GetFontDefault(), 
+            GetGameFont(), 
             label,
             static_cast<int>(INPUT_X - 12),
             static_cast<int>(y - 7),
@@ -219,7 +230,7 @@ void DrawOutputNode(int output_bits[4], int target_hex, const t_Pin* hovered_pin
     DrawRectangleRoundedLines({cx - 45, cy - 65, 90, 130}, 0.2f, 10, border);
     DrawRectangleRoundedLines({cx - 43, cy - 63, 86, 126}, 0.2f, 10, ColorAlpha(border, 0.3f));
 
-    Font font = GetFontDefault();
+    Font font = GetGameFont();
     DrawTextShadowed
     (
         font, 
@@ -259,7 +270,7 @@ void DrawOutputNode(int output_bits[4], int target_hex, const t_Pin* hovered_pin
         snprintf(bit_label, sizeof(bit_label), "b%d", b);
         DrawTextShadowed
         (
-            GetFontDefault(), 
+            GetGameFont(), 
             bit_label, 
             static_cast<int>(bx - 6), 
             static_cast<int>(by + 10),
@@ -310,30 +321,60 @@ Rectangle GetClearButtonRect()
 
 void DrawPalette(int selected_index)
 {
+    Vector2 mouse_pos = GetMousePosition();
+
     for (int i = 0; i < GATE_COUNT; i++)
     {
         GateType type = static_cast<GateType>(i);
         Rectangle r = GetPaletteButtonRect(i);
         bool is_selected = (i == selected_index);
+        bool is_hovered = CheckCollisionPointRec(mouse_pos, r);
 
-        Color bg = is_selected ? Color{0, 100, 150, 255} : Color{15, 25, 45, 255};
-        Color border = is_selected ? Color{0, 255, 255, 255} : Color{40, 80, 120, 255};
+        // Hover animation
+        if (is_hovered)
+        {
+            r.x -= 2; r.y -= 2;
+            r.width += 4; r.height += 4;
+        }
 
-        if (is_selected)
+        Color bg = is_selected ? Color{0, 100, 150, 255} : (is_hovered ? Color{20, 40, 70, 255} : Color{15, 25, 45, 255});
+        Color border = is_selected ? Color{0, 255, 255, 255} : (is_hovered ? Color{0, 200, 255, 255} : Color{40, 80, 120, 255});
+
+        if (is_selected || is_hovered)
         {
             DrawRectangleRounded({r.x-2, r.y-2, r.width+4, r.height+4}, 0.2f, 6, ColorAlpha(border, 0.4f));
         }
 
         DrawRectangleRounded(r, 0.2f, 6, bg);
+        
+        // 3D lip
+        Rectangle bottom_lip = {r.x, r.y + r.height - 6, r.width, 6};
+        DrawRectangleRounded(bottom_lip, 0.2f, 6, ColorAlpha(BLACK, 0.4f));
+        
         DrawRectangleRoundedLines(r, 0.2f, 6, border);
 
-        const char* label = GateTypeToString(type);
-        DrawTextCentered(GetFontDefault(), label, r, 14, is_selected ? WHITE : Color{200, 220, 255, 255});
+        t_Gate temp_gate;
+        temp_gate.type = type;
+        temp_gate.row = 0; temp_gate.col = 0;
+        
+        float gw = r.height * 1.2f;
+        float gh = r.height * 1.2f;
+        float gx = r.x + (r.width - gw) / 2.0f;
+        float gy = r.y + (r.height - gh) / 2.0f - 2.0f; // Shift up slightly for 3D lip
+        
+        DrawGateShape(temp_gate, gx, gy, gw, gh, is_selected ? 1 : 0, 1.0f);
     }
 
     Rectangle clear_r = GetClearButtonRect();
-    DrawRectangleRounded({clear_r.x-2, clear_r.y-2, clear_r.width+4, clear_r.height+4}, 0.2f, 6, ColorAlpha(RED, 0.2f));
-    DrawRectangleRounded(clear_r, 0.2f, 6, Color{40, 10, 15, 255});
-    DrawRectangleRoundedLines(clear_r, 0.2f, 6, Color{255, 50, 80, 255});
-    DrawTextCentered(GetFontDefault(), "CLEAR", clear_r, 14, Color{255, 100, 120, 255});
+    bool clear_hovered = CheckCollisionPointRec(mouse_pos, clear_r);
+    if (clear_hovered)
+    {
+        clear_r.x -= 2; clear_r.y -= 2;
+        clear_r.width += 4; clear_r.height += 4;
+    }
+    
+    DrawRectangleRounded({clear_r.x-2, clear_r.y-2, clear_r.width+4, clear_r.height+4}, 0.2f, 6, ColorAlpha(RED, clear_hovered ? 0.4f : 0.2f));
+    DrawRectangleRounded(clear_r, 0.2f, 6, clear_hovered ? Color{60, 15, 20, 255} : Color{40, 10, 15, 255});
+    DrawRectangleRoundedLines(clear_r, 0.2f, 6, clear_hovered ? Color{255, 100, 100, 255} : Color{255, 50, 80, 255});
+    DrawTextCentered(GetGameFont(), "CLEAR", clear_r, 14, clear_hovered ? WHITE : Color{255, 100, 120, 255});
 }
