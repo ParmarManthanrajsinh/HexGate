@@ -452,7 +452,7 @@ void Game::Draw()
     BeginDrawing();
     ClearBackground({13, 13, 26, 255});
 
-    Camera2D camera = { 0 };
+    Camera2D camera = {};
     camera.zoom = 1.0f;
     if (screen_shake_time > 0)
     {
