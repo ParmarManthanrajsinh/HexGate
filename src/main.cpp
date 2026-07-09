@@ -21,6 +21,7 @@ int main()
     SetTraceLogLevel(LOG_NONE);
 #endif
 
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hex Merge");
     InitAudio();
     Game game;
