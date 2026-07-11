@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstdlib>
+#include <rlgl.h>
 
 // --- Dialogs ---
 namespace Dialogs
@@ -438,6 +439,22 @@ void Robot::Speak(const std::string& text, int priority, RobotMood mood, float d
     bot.dialog_duration = duration;
     bot.dialog_elapsed = 0.0f;
     bot.dialog_priority = priority;
+    if (bot.current_mood != mood && (mood == RobotMood::HAPPY || mood == RobotMood::EXCITED || mood == RobotMood::ANGRY)) {
+        for (int i=0; i<8; i++) {
+            RobotParticle p;
+            p.pos = bot.current_pos;
+            p.pos.y -= 20;
+            p.vel = {(float)(rand()%100 - 50)/20.0f, (float)(rand()%100 - 150)/20.0f};
+            p.life = 0;
+            p.max_life = 1.0f + (rand()%100)/100.0f;
+            p.text = (rand()%2 == 0) ? '0' : '1';
+            p.col = (mood == RobotMood::ANGRY) ? Color{255, 50, 50, 255} : Color{50, 255, 100, 255};
+            bot.particles.push_back(p);
+        }
+    }
+    if (mood == RobotMood::ANGRY || mood == RobotMood::SURPRISED) {
+        bot.glitch_timer = 0.5f;
+    }
     bot.current_mood = mood;
     bot.type_cursor = 0;
 }
@@ -452,26 +469,30 @@ void Robot::UpdateAnimation(float dt, Vector2 mouse_pos)
     bot.anim_time += dt;
     bot.boop_timer = std::max(0.0f, bot.boop_timer - dt);
     bot.proximity_cooldown = std::max(0.0f, bot.proximity_cooldown - dt);
+    bot.glitch_timer = std::max(0.0f, bot.glitch_timer - dt);
+
+    Vector2 prev_pos = bot.current_pos;
 
     // Position lerp toward screen target
-    if (bot.current_screen == RobotScreen::LEVEL_COMPLETE)
+    if (!bot.is_dragged)
     {
-        bot.target_pos.x = 400.0f + sinf(bot.anim_time * 2.5f) * 250.0f;
-        bot.target_pos.y = 300.0f + cosf(bot.anim_time * 1.8f) * 150.0f;
-        
-        bot.current_pos.x += (bot.target_pos.x - bot.current_pos.x) * dt * 6.0f;
-        bot.current_pos.y += (bot.target_pos.y - bot.current_pos.y) * dt * 6.0f;
-        
-        bot.trail.push_back(bot.current_pos);
-        if (bot.trail.size() > 25) bot.trail.erase(bot.trail.begin());
+        if (bot.current_screen == RobotScreen::LEVEL_COMPLETE)
+        {
+            bot.target_pos.x = 400.0f + sinf(bot.anim_time * 2.5f) * 250.0f;
+            bot.target_pos.y = 300.0f + cosf(bot.anim_time * 1.8f) * 150.0f;
+            
+            bot.current_pos.x += (bot.target_pos.x - bot.current_pos.x) * dt * 6.0f;
+            bot.current_pos.y += (bot.target_pos.y - bot.current_pos.y) * dt * 6.0f;
+        }
+        else
+        {
+            bot.current_pos.x += (bot.target_pos.x - bot.current_pos.x) * dt * 4.0f;
+            bot.current_pos.y += (bot.target_pos.y - bot.current_pos.y) * dt * 4.0f;
+        }
     }
-    else
-    {
-        bot.current_pos.x += (bot.target_pos.x - bot.current_pos.x) * dt * 4.0f;
-        bot.current_pos.y += (bot.target_pos.y - bot.current_pos.y) * dt * 4.0f;
-        
-        if (!bot.trail.empty()) bot.trail.erase(bot.trail.begin());
-    }
+
+    bot.trail.push_back(bot.current_pos);
+    if (bot.trail.size() > 25) bot.trail.erase(bot.trail.begin());
 
     // Blink logic
     bot.blink_timer -= dt;
@@ -526,6 +547,27 @@ void Robot::UpdateAnimation(float dt, Vector2 mouse_pos)
         bot.dialog_priority = 0; // reset priority
         bot.current_mood = RobotMood::IDLE;
     }
+
+    // Velocity calc for squash/stretch
+    bot.vel.x = (bot.current_pos.x - prev_pos.x) / dt;
+    bot.vel.y = (bot.current_pos.y - prev_pos.y) / dt;
+
+    // Spring physics for antenna
+    float target_antenna = -bot.vel.x * 0.05f; 
+    float spring_f = (target_antenna - bot.antenna_offset) * 15.0f; // k
+    bot.antenna_vel += spring_f * dt;
+    bot.antenna_vel *= 0.85f; // damp
+    bot.antenna_offset += bot.antenna_vel * dt;
+
+    // Update particles
+    for (int i = (int)bot.particles.size() - 1; i >= 0; i--) {
+        bot.particles[i].life += dt;
+        bot.particles[i].pos.x += bot.particles[i].vel.x;
+        bot.particles[i].pos.y += bot.particles[i].vel.y;
+        if (bot.particles[i].life >= bot.particles[i].max_life) {
+            bot.particles.erase(bot.particles.begin() + i);
+        }
+    }
 }
 
 void Robot::Update
@@ -549,49 +591,88 @@ void Robot::Update
     float dt = GetFrameTime();
     UpdateAnimation(dt, mouse_pos);
 
-    // Proximity logic (gated by cooldown to prevent spam)
-    float dx = mouse_pos.x - bot.current_pos.x;
-    float dy = mouse_pos.y - bot.current_pos.y;
-    float dist = sqrtf(dx*dx + dy*dy);
-
-    if (dist < 30.0f)
-    {
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-        {
-            if (bot.boop_timer <= 0.0f)
-            {
-                bot.boop_timer = 0.3f;
-                PlaySfx(SfxType::ROBOT_BOOP);
-            }
-            if (bot.proximity_cooldown <= 0.0f)
-            {
-                bot.proximity_cooldown = 3.0f;
-                Speak(GetRandomDialog(diag_boop), 3, RobotMood::SURPRISED);
-            }
-        }
-    }
-    else if (dist < 75.0f)
-    {
-        if (bot.proximity_cooldown <= 0.0f)
-        {
-            bot.proximity_cooldown = 1.5f;
-            Speak(GetRandomDialog(diag_close_zone), 2, RobotMood::ANGRY);
-        }
-    }
-
+    
+    // Interaction states
     static Vector2 prev_mouse_pos = mouse_pos;
     float mouse_dx = mouse_pos.x - prev_mouse_pos.x;
     float mouse_dy = mouse_pos.y - prev_mouse_pos.y;
     float mouse_speed = sqrtf(mouse_dx*mouse_dx + mouse_dy*mouse_dy) / dt;
     prev_mouse_pos = mouse_pos;
 
-    static float speed_cooldown = 0.0f;
-    if (speed_cooldown > 0.0f) speed_cooldown -= dt;
+    float dx = mouse_pos.x - bot.current_pos.x;
+    float dy = mouse_pos.y - bot.current_pos.y;
+    float dist = sqrtf(dx*dx + dy*dy);
 
-    if (mouse_speed > 3000.0f && speed_cooldown <= 0.0f)
-    {
-        speed_cooldown = 15.0f;
-        Speak(GetRandomDialog(diag_speed), 2, RobotMood::SURPRISED);
+    if (bot.high_five_timer > 0.0f) {
+        bot.high_five_timer -= dt;
+    } else if ((rand() % 2000) == 0 && bot.current_screen == RobotScreen::PLAYING) {
+        bot.high_five_timer = 3.0f;
+        bot.high_five_active = true;
+    }
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if (bot.high_five_active && dist < 60.0f && mouse_pos.x > bot.current_pos.x + 10.0f && mouse_pos.y < bot.current_pos.y) {
+            bot.high_five_active = false;
+            bot.high_five_timer = 0.0f;
+            bot.current_mood = RobotMood::HAPPY;
+            PlaySfx(SfxType::ROBOT_BOOP); // Replace with clap sound if available
+            for (int i=0; i<5; i++) {
+                RobotParticle p; p.pos = bot.current_pos; p.pos.x += 40; p.pos.y -= 20;
+                p.vel = {(float)(rand()%100-50), (float)(rand()%100-50)};
+                p.life = 0; p.max_life = 1.0f; p.text = '*'; p.col = {255,255,0,255};
+                bot.particles.push_back(p);
+            }
+            Speak("HIGH FIVE!", 3, RobotMood::EXCITED);
+        } else if (dist < 40.0f) {
+            if (dy < -10.0f) {
+                // Poke antenna
+                bot.antenna_vel -= 30.0f;
+                Speak("Hey, watch the antenna!", 3, RobotMood::ANGRY);
+            } else if (dy > -5.0f && dy < 5.0f && abs(dx) < 15.0f) {
+                // Poke eye
+                bot.is_blinking = true;
+                bot.blink_timer = 0.2f;
+                bot.glitch_timer = 0.5f;
+                bot.current_mood = RobotMood::SURPRISED;
+                Speak("Ouch! My optical sensor!", 3, RobotMood::SURPRISED);
+            } else {
+                bot.is_dragged = true;
+            }
+        }
+    }
+
+    if (bot.is_dragged) {
+        bot.current_pos = mouse_pos;
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) {
+            bot.is_dragged = false;
+            if (mouse_speed > 1000.0f) {
+                bot.current_mood = RobotMood::SAD;
+                Speak("Whoa! Too fast!", 3, RobotMood::SAD);
+                bot.glitch_timer = 1.0f;
+            } else {
+                bot.current_mood = RobotMood::ANGRY;
+                Speak("Put me down!", 3, RobotMood::ANGRY);
+            }
+        }
+    } else {
+        if (dist < 40.0f && mouse_speed > 50.0f && !IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+            bot.pet_count++;
+            if (bot.pet_count > 30) {
+                bot.current_mood = RobotMood::HAPPY;
+                bot.pet_timer = 2.0f;
+                bot.pet_count = 0;
+                RobotParticle p; p.pos = bot.current_pos; p.pos.y -= 30;
+                p.vel = {0, -20.0f}; p.life = 0; p.max_life = 1.0f; p.text = 3; p.col = {255,100,100,255}; // heart
+                bot.particles.push_back(p);
+            }
+        } else {
+            bot.pet_count = 0;
+        }
+    }
+
+    if (bot.pet_timer > 0.0f) {
+        bot.pet_timer -= dt;
+        if (bot.pet_timer <= 0.0f) bot.current_mood = RobotMood::IDLE;
     }
 
     // Patience decay
@@ -750,15 +831,23 @@ void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 m
     float bob = sinf(bot.anim_time * bob_speed) * bob_amp;
     Vector2 p = { bot.current_pos.x, bot.current_pos.y + bob };
 
+    // Glitch effect
+    if (bot.glitch_timer > 0.0f && (rand() % 4 == 0)) {
+        p.x += (rand() % 10 - 5);
+    }
+
+    // Draw shadow removed
+
     // Draw Trail
     if (!bot.trail.empty())
     {
         for (size_t i = 1; i < bot.trail.size(); i++)
         {
             float alpha = static_cast<float>(i) / bot.trail.size();
-            Vector2 t1 = { bot.trail[i-1].x, bot.trail[i-1].y + sinf((bot.anim_time - 0.05f) * bob_speed) * bob_amp };
-            Vector2 t2 = { bot.trail[i].x, bot.trail[i].y + bob };
-            DrawLineEx(t1, t2, 8.0f * alpha, ColorAlpha(border_color, alpha * 0.6f));
+            Vector2 t1 = { bot.trail[i-1].x, bot.trail[i-1].y + sinf((bot.anim_time - 0.05f * (bot.trail.size() - i)) * bob_speed) * bob_amp };
+            Vector2 t2 = { bot.trail[i].x, bot.trail[i].y + sinf((bot.anim_time - 0.05f * (bot.trail.size() - i - 1)) * bob_speed) * bob_amp };
+            DrawLineEx(t1, t2, 12.0f * alpha, ColorAlpha(border_color, alpha * 0.4f));
+            DrawLineEx(t1, t2, 6.0f * alpha, ColorAlpha(WHITE, alpha * 0.8f));
         }
     }
 
@@ -770,18 +859,42 @@ void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 m
         boop_scale = 1.0f - sinf(t * PI) * 0.2f;
     }
 
+    rlPushMatrix();
+    rlTranslatef(p.x, p.y, 0);
+
+    // Squash and stretch based on velocity
+    float speed = sqrtf(bot.vel.x*bot.vel.x + bot.vel.y*bot.vel.y);
+    float stretch = 1.0f + speed * 0.0005f;
+    float squash = 1.0f - speed * 0.00025f;
+    if (stretch > 1.3f) stretch = 1.3f;
+    if (squash < 0.7f) squash = 0.7f;
+    rlScalef(squash, stretch, 1.0f);
+
+    Vector2 lp = {0, 0}; // Local coordinates
+
     // Draw Antenna
-    DrawLineEx({p.x, p.y - 28}, {p.x, p.y - 42}, 2.0f, border_color);
-    DrawCircleV({p.x, p.y - 42}, 4.0f, border_color);
+    DrawLineEx({lp.x + bot.antenna_offset, lp.y - 42}, {lp.x, lp.y - 28}, 2.0f, border_color);
+    DrawCircleV({lp.x + bot.antenna_offset, lp.y - 42}, 4.0f, border_color);
 
     // Draw body
     float base_radius = 32.0f * pulse * boop_scale;
-    DrawPoly(p, 6, base_radius, 90.0f, Color{16, 18, 40, 255});
-    DrawPolyLinesEx(p, 6, base_radius, 90.0f, 2.0f, border_color);
+    DrawPoly(lp, 6, base_radius, 90.0f, Color{16, 18, 40, 255});
+    
+    // Fake Bloom
+    for(int i=1; i<=3; i++) {
+        DrawPolyLinesEx(lp, 6, base_radius, 90.0f, 2.0f + i*2.0f, ColorAlpha(border_color, 0.4f/i));
+    }
+    DrawPolyLinesEx(lp, 6, base_radius, 90.0f, 2.0f, border_color);
+
+    // Glitch chromatic aberration
+    if (bot.glitch_timer > 0.0f && (rand()%3 == 0)) {
+        DrawPolyLinesEx({lp.x - 3, lp.y}, 6, base_radius, 90.0f, 2.0f, ColorAlpha(RED, 0.7f));
+        DrawPolyLinesEx({lp.x + 3, lp.y}, 6, base_radius, 90.0f, 2.0f, ColorAlpha({0, 255, 255, 255}, 0.7f));
+    }
 
     // Draw Eyes
-    Vector2 left_eye = { p.x - 9, p.y - 4 };
-    Vector2 right_eye = { p.x + 9, p.y - 4 };
+    Vector2 left_eye = { lp.x - 9, lp.y - 4 };
+    Vector2 right_eye = { lp.x + 9, lp.y - 4 };
 
     if (bot.is_blinking)
     {
@@ -804,33 +917,72 @@ void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 m
             {right_eye.x + bot.eye_offset.x, right_eye.y + bot.eye_offset.y},
             eye_r * 0.5f, Color{20, 25, 50, 255}
         );
+
+        // Eyelids
+        if (bot.current_mood == RobotMood::SASSY) {
+            DrawRectangle(left_eye.x - 10, left_eye.y - 10, 20, 10, Color{16, 18, 40, 255});
+            DrawRectangle(right_eye.x - 10, right_eye.y - 10, 20, 10, Color{16, 18, 40, 255});
+        } else if (bot.current_mood == RobotMood::ANGRY) {
+            DrawTriangle({left_eye.x - 10, left_eye.y - 10}, {left_eye.x - 10, left_eye.y}, {left_eye.x + 10, left_eye.y - 10}, Color{16, 18, 40, 255});
+            DrawTriangle({right_eye.x + 10, right_eye.y - 10}, {right_eye.x - 10, right_eye.y - 10}, {right_eye.x + 10, right_eye.y}, Color{16, 18, 40, 255});
+        } else if (bot.current_mood == RobotMood::SAD) {
+            DrawTriangle({left_eye.x + 10, left_eye.y - 10}, {left_eye.x - 10, left_eye.y - 10}, {left_eye.x + 10, left_eye.y}, Color{16, 18, 40, 255});
+            DrawTriangle({right_eye.x - 10, right_eye.y - 10}, {right_eye.x - 10, right_eye.y}, {right_eye.x + 10, right_eye.y - 10}, Color{16, 18, 40, 255});
+        }
     }
 
     // Draw Mouth
     if (bot.current_mood == RobotMood::HAPPY || bot.current_mood == RobotMood::EXCITED)
     {
-        DrawLineEx({p.x - 5, p.y + 10}, {p.x, p.y + 14}, 2.0f, WHITE);
-        DrawLineEx({p.x, p.y + 14}, {p.x + 5, p.y + 10}, 2.0f, WHITE);
+        DrawLineEx({lp.x - 5, lp.y + 10}, {lp.x, lp.y + 14}, 2.0f, WHITE);
+        DrawLineEx({lp.x, lp.y + 14}, {lp.x + 5, lp.y + 10}, 2.0f, WHITE);
     }
     else if (bot.current_mood == RobotMood::SAD)
     {
-        DrawLineEx({p.x - 5, p.y + 14}, {p.x, p.y + 10}, 2.0f, WHITE);
-        DrawLineEx({p.x, p.y + 10}, {p.x + 5, p.y + 14}, 2.0f, WHITE);
+        DrawLineEx({lp.x - 5, lp.y + 14}, {lp.x, lp.y + 10}, 2.0f, WHITE);
+        DrawLineEx({lp.x, lp.y + 10}, {lp.x + 5, lp.y + 14}, 2.0f, WHITE);
     }
     else if (bot.current_mood == RobotMood::ANGRY || bot.patience < 20.0f)
-    { // Fidgety mouth if low patience
-        DrawLineEx({p.x - 6, p.y + 12}, {p.x - 2, p.y + 10}, 2.0f, WHITE);
-        DrawLineEx({p.x - 2, p.y + 10}, {p.x + 2, p.y + 14}, 2.0f, WHITE);
-        DrawLineEx({p.x + 2, p.y + 14}, {p.x + 6, p.y + 12}, 2.0f, WHITE);
+    { 
+        DrawLineEx({lp.x - 6, lp.y + 12}, {lp.x - 2, lp.y + 10}, 2.0f, WHITE);
+        DrawLineEx({lp.x - 2, lp.y + 10}, {lp.x + 2, lp.y + 14}, 2.0f, WHITE);
+        DrawLineEx({lp.x + 2, lp.y + 14}, {lp.x + 6, lp.y + 12}, 2.0f, WHITE);
     }
     else if (bot.current_mood == RobotMood::SURPRISED)
     {
-        DrawCircleV({p.x, p.y + 12}, 3.0f, WHITE);
+        DrawCircleV({lp.x, lp.y + 12}, 3.0f, WHITE);
     }
     else
     {
         // IDLE or SASSY
-        DrawLineEx({p.x - 4, p.y + 12}, {p.x + 4, p.y + 12}, 2.0f, WHITE);
+        DrawLineEx({lp.x - 4, lp.y + 12}, {lp.x + 4, lp.y + 12}, 2.0f, WHITE);
+    }
+
+    // Typing waveform
+    if (bot.dialog_timer > 0 && bot.type_cursor < (int)bot.current_dialog.length()) {
+        float wave1 = (rand() % 6) - 3.0f;
+        float wave2 = (rand() % 6) - 3.0f;
+        DrawLineEx({lp.x - 3, lp.y + 12 + wave1}, {lp.x, lp.y + 12 + wave2}, 2.0f, WHITE);
+        DrawLineEx({lp.x, lp.y + 12 + wave2}, {lp.x + 3, lp.y + 12 + wave1}, 2.0f, WHITE);
+    }
+
+    if (bot.high_five_timer > 0.0f) {
+        float hand_bob = sinf(bot.anim_time * 10.0f) * 2.0f;
+        DrawPoly({lp.x + 40, lp.y - 10 + hand_bob}, 5, 8.0f, 0.0f, border_color);
+        DrawCircleV({lp.x + 40, lp.y - 10 + hand_bob}, 6.0f, Color{16, 18, 40, 255});
+    }
+
+    rlPopMatrix();
+
+    // Draw Particles
+    for (const auto& pt : bot.particles) {
+        if (pt.text == 'O') {
+            float r = (pt.life / pt.max_life) * 40.0f;
+            DrawCircleLinesV(pt.pos, r, ColorAlpha(pt.col, 1.0f - (pt.life/pt.max_life)));
+        } else {
+            char t[2] = {pt.text, '\0'};
+            DrawText(t, (int)pt.pos.x, (int)pt.pos.y, 10, ColorAlpha(pt.col, 1.0f - (pt.life/pt.max_life)));
+        }
     }
 
     // Draw Affection Meter (Trust) — only during gameplay
@@ -1020,6 +1172,15 @@ void Robot::Update(float dt, Vector2 mouse_pos)
             {
                 bot.boop_timer = 0.3f;
                 PlaySfx(SfxType::ROBOT_BOOP);
+                // Shockwave particle
+                RobotParticle p;
+                p.pos = bot.current_pos;
+                p.vel = {0,0};
+                p.life = 0;
+                p.max_life = 0.5f;
+                p.text = 'O'; // special ring marker
+                p.col = {200,255,255,255};
+                bot.particles.push_back(p);
             }
             if (bot.proximity_cooldown <= 0.0f)
             {

@@ -7,6 +7,17 @@
 enum class RobotMood { IDLE, HAPPY, ANGRY, SURPRISED, SAD, EXCITED, SASSY };
 enum class RobotScreen { TITLE, HOW_TO_PLAY, PLAYING, LEVEL_COMPLETE };
 
+struct RobotParticle
+{
+    Vector2 pos;
+    Vector2 vel;
+    float life;
+    float max_life;
+    char text;
+    Color col;
+};
+
+
 struct t_HexBot
 {
     Vector2 base_pos = {660, 530};
@@ -61,6 +72,20 @@ struct t_HexBot
     
     // Trail for flying
     std::vector<Vector2> trail;
+
+    // Juice state
+    std::vector<RobotParticle> particles;
+    Vector2 vel = {0, 0};
+    float antenna_offset = 0.0f;
+    float antenna_vel = 0.0f;
+    float glitch_timer = 0.0f;
+
+    // Interaction states
+    bool is_dragged = false;
+    float pet_timer = 0.0f;
+    int pet_count = 0;
+    float high_five_timer = 0.0f;
+    bool high_five_active = false;
 };
 
 class Robot

@@ -53,7 +53,7 @@ void Game::HandleClick(Vector2 pos)
                     }
                 }
 
-                if (from_count < 2)
+                if (from_count < 1)
                 {
                     wires.emplace_back(w);
                     robot.OnWireConnected(wires.size(), gates.size());
