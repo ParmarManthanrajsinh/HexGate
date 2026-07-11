@@ -1,0 +1,252 @@
+#include "game.h"
+#include "assets.h"
+#include "audio.h"
+#include "circuit.h"
+#include "gates.h"
+#include "hex_grid.h"
+#include "menu.h"
+#include "text_util.h" // IWYU pragma: keep
+#include "ui.h"
+#include "wires.h"
+#include <algorithm>
+#include <cmath>
+#include <raylib.h>
+
+void Game::Update()
+{
+    if (game_state != GameState::PLAYING)
+    {
+        if (game_state == GameState::TITLE_SCREEN)
+        {
+            GameState next = UpdateTitleScreen(anim_time);
+            if (next == GameState::TITLE_TO_PLAY_TRANSITION) 
+            {
+                game_state = GameState::TITLE_TO_PLAY_TRANSITION;
+                PlaySfx(SfxType::SOLVED); // Juice for starting
+            }
+            else if (next == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION)
+            {
+                game_state = GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION;
+                PlaySfx(SfxType::SOLVED);
+            }
+        }
+        else if (game_state == GameState::TITLE_TO_PLAY_TRANSITION || game_state == GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::PLAYING;
+                transition_time = 0;
+                Reset(); // Initialize fresh board
+            }
+        }
+        else if (game_state == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::HOW_TO_PLAY;
+                transition_time = 0;
+            }
+        }
+        else if (game_state == GameState::HOW_TO_PLAY_TO_TITLE_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::TITLE_SCREEN;
+                transition_time = 0;
+            }
+        }
+        else if (game_state == GameState::PLAYING_TO_TITLE_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::TITLE_SCREEN;
+                transition_time = 0;
+            }
+        }
+        else if (game_state == GameState::HOW_TO_PLAY)
+        {
+            GameState next = UpdateHowToPlay(anim_time);
+            if (next == GameState::HOW_TO_PLAY_TO_TITLE_TRANSITION)
+            {
+                game_state = GameState::HOW_TO_PLAY_TO_TITLE_TRANSITION;
+                PlaySfx(SfxType::SOLVED);
+            }
+            else if (next == GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION)
+            {
+                game_state = GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION;
+                PlaySfx(SfxType::SOLVED); // Juice for starting
+            }
+        }
+
+        else if (game_state == GameState::LEVEL_COMPLETE)
+        {
+            GameState next = UpdateLevelComplete(anim_time, last_stats);
+            if (next == GameState::LEVEL_COMPLETE_TO_PLAY_TRANSITION)
+            {
+                game_state = GameState::LEVEL_COMPLETE_TO_PLAY_TRANSITION;
+                PlaySfx(SfxType::SOLVED);
+            }
+            else if (next == GameState::LEVEL_COMPLETE_TO_TITLE_TRANSITION)
+            {
+                game_state = GameState::LEVEL_COMPLETE_TO_TITLE_TRANSITION;
+                PlaySfx(SfxType::SOLVED);
+            }
+        }
+        else if (game_state == GameState::PLAYING_TO_LEVEL_COMPLETE_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::LEVEL_COMPLETE;
+                transition_time = 0;
+            }
+        }
+        else if (game_state == GameState::LEVEL_COMPLETE_TO_PLAY_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::PLAYING;
+                transition_time = 0;
+                Reset(); // fresh board
+            }
+        }
+        else if (game_state == GameState::LEVEL_COMPLETE_TO_TITLE_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::TITLE_SCREEN;
+                transition_time = 0;
+            }
+        }
+
+        float dt = GetFrameTime();
+        anim_time += dt;
+        if (screen_shake_time > 0) screen_shake_time -= dt;
+        return;
+    }
+
+    if (!solved)
+    {
+        level_timer += GetFrameTime();
+    }
+    else
+    {
+        if (level_complete_delay > 0)
+        {
+            level_complete_delay -= GetFrameTime();
+            if (level_complete_delay <= 0)
+            {
+                game_state = GameState::PLAYING_TO_LEVEL_COMPLETE_TRANSITION;
+                transition_time = 0;
+                PlaySfx(SfxType::SOLVED); // swoosh sound for menu transition
+                return;
+            }
+        }
+    }
+
+    mouse_pos = GetMousePosition();
+    hovered_pin = FindPinAt(mouse_pos);
+    hovered_cell = GetGridCell(mouse_pos);
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        HandleClick(mouse_pos);
+    if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON))
+        HandleRightClick(mouse_pos);
+
+    if (dragging_gate_id != -1)
+    {
+        if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+        {
+            if (hovered_cell.IsValid())
+            {
+                bool is_obstacle = false;
+                for (const auto& o : obstacles) {
+                    if (o.row == hovered_cell.row && o.col == hovered_cell.col) { is_obstacle = true; break; }
+                }
+
+                t_Gate* existing = FindGateAt(hovered_cell.row, hovered_cell.col);
+                if (!is_obstacle && (!existing || existing->id == dragging_gate_id))
+                {
+                    t_Gate* g = FindGateById(dragging_gate_id);
+                    if (g)
+                    {
+                        g->row = hovered_cell.row;
+                        g->col = hovered_cell.col;
+                        SpawnParticles(GetHexCenter(hovered_cell.row, hovered_cell.col), {0, 255, 255, 255}, 15);
+                        PlaySfx(SfxType::PLACE_GATE);
+                    }
+                }
+            }
+            dragging_gate_id = -1;
+            Evaluate();
+        }
+    }
+
+    if (wire_drag_state.IsActive())
+    {
+        if (GetRandomValue(0, 2) == 0) SpawnParticles(mouse_pos, {0, 245, 212, 200}, 1);
+    }
+
+    float dt = GetFrameTime();
+    anim_time += dt;
+    if (solved && solved_pulse > 0)
+        solved_pulse = fmaxf(0, solved_pulse - dt * 0.8f);
+
+    if (screen_shake_time > 0) screen_shake_time -= dt;
+
+    for (auto& p : particles)
+    {
+        p.pos.x += p.vel.x * dt;
+        p.pos.y += p.vel.y * dt;
+        p.life -= dt;
+    }
+    particles.erase
+    (
+        std::remove_if
+        (
+            particles.begin(), particles.end(),
+            [](const Particle& p)
+            {
+                return p.life <= 0;
+            }
+        ),
+        particles.end()
+    );
+
+    ghost_pos.x += (mouse_pos.x - ghost_pos.x) * dt * 15.0f;
+    ghost_pos.y += (mouse_pos.y - ghost_pos.y) * dt * 15.0f;
+
+    // Keyboard input toggles removed for fixed difficulty
+    if (IsKeyPressed(KEY_R))
+    {
+        target_hex = GetRandomValue(1, 15);
+        Evaluate();
+    }
+    if (IsKeyPressed(KEY_T))
+    {
+        target_hex = (target_hex + 1) % 16;
+        Evaluate();
+    }
+    if (IsKeyPressed(KEY_ESCAPE))
+    {
+        selected_gate_index = -1;
+        wire_drag_state = {};
+        game_state = GameState::PLAYING_TO_TITLE_TRANSITION;
+        transition_time = 0;
+        PlaySfx(SfxType::SOLVED);
+    }
+}
+

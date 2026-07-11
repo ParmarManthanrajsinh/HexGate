@@ -1,10 +1,60 @@
 #include "ui.h"
-#include "hex_grid.h"
-#include "text_util.h"
-#include <cmath>
-#include <cstring> // IWYU pragma: keep
-#include <raylib.h>
 #include "assets.h"
+#include "text_util.h"
+#include "hex_grid.h"
+#include <cmath>
+#include <cstdio>
+#include <raylib.h>
+
+
+static Rectangle GetPaletteButtonRect(int index)
+{
+    float btn_w = 68;
+    float spacing = 4;
+    float total_gate = 5 * btn_w + (5 - 1) * spacing; // GATE_COUNT is 5
+    float total = total_gate + spacing + 90;
+    float start_x = (720 - total) / 2;
+    return {start_x + index * (btn_w + spacing), 650.0f + 12.0f, btn_w, 32}; // PALETTE_Y is 650
+}
+
+static void DrawPin(Vector2 pos, bool active, bool is_hovered, bool is_connected, bool show_delete)
+{
+    Color fill{};
+    if (is_hovered)
+    {
+        fill = WHITE;
+    }
+    else if (is_connected)
+    {
+        fill = active ? Color{0, 255, 255, 255} : Color{50, 150, 255, 255};
+    }
+    else
+    {
+        fill = active ? Color{0, 255, 255, 255} : Color{30, 80, 140, 255};
+    }
+
+    DrawCircleV(pos, 6.0f, fill); // PIN_RADIUS is 6
+    DrawCircleV(pos, 6.0f * 0.5f, WHITE);
+
+    if (is_hovered)
+    {
+        Color ring = show_delete ? Color{255, 50, 50, 255} : Color{0, 255, 255, 255};
+        DrawCircleLines(static_cast<int>(pos.x), static_cast<int>(pos.y), 6.0f + 4.0f, ring);
+        if (show_delete)
+        {
+            DrawTextShadowed
+            (
+                GetGameFont(), 
+                "X", 
+                static_cast<int>(pos.x) - 4,
+                static_cast<int>(pos.y) - 5,
+                10,
+                RED
+            );
+        }
+    }
+}
+
 
 void DrawBackground()
 {
@@ -117,74 +167,6 @@ void DrawInfoBar(int target_hex, int current_hex, bool solved, float anim_time)
     }
 }
 
-static void DrawNodeBody(float x, float y, float radius, bool active, bool is_hovered, float anim_time)
-{
-    float pulse = 0.5f + 0.5f * sinf(anim_time * 5.0f);
-    Color glow_color = active ? Color{0, 255, 255, 60} : Color{0, 100, 255, 30};
-    Color inner_color = active ? Color{0, 220, 255, 255} : Color{10, 30, 80, 255};
-    Color border_color = active ? Color{255, 255, 255, 255} : Color{20, 100, 200, 255};
-
-    if (active)
-    {
-        glow_color.a = static_cast<unsigned char>(glow_color.a * (1.0f + pulse * 0.5f));
-    }
-
-    // Glow (layered circles)
-    for (int r = 35; r > 10; r -= 5)
-    {
-        Color c = glow_color;
-        c.a = static_cast<unsigned char>(float(c.a) * (1.0f - static_cast<float>(r - 10) / 25.0f));
-        DrawCircleV({x, y}, static_cast<float>(r), c);
-    }
-
-    // Body
-    DrawCircleV({x, y}, static_cast<float>(radius), inner_color);
-    DrawCircleV({x, y}, static_cast<float>(radius * 0.7f), border_color);
-
-    if (is_hovered)
-    {
-        DrawCircleV({x, y}, static_cast<float>(radius + 4), ColorAlpha(SKYBLUE, 0.5f));
-    }
-}
-
-static void DrawPin(Vector2 pos, bool active, bool is_hovered, bool is_connected, bool show_delete)
-{
-    Color fill{};
-    if (is_hovered)
-    {
-        fill = WHITE;
-    }
-    else if (is_connected)
-    {
-        fill = active ? Color{0, 255, 255, 255} : Color{50, 150, 255, 255};
-    }
-    else
-    {
-        fill = active ? Color{0, 255, 255, 255} : Color{30, 80, 140, 255};
-    }
-
-    DrawCircleV(pos, PIN_RADIUS, fill);
-    DrawCircleV(pos, PIN_RADIUS * 0.5f, WHITE);
-
-    if (is_hovered)
-    {
-        Color ring = show_delete ? Color{255, 50, 50, 255} : Color{0, 255, 255, 255};
-        DrawCircleLines(static_cast<int>(pos.x), static_cast<int>(pos.y), PIN_RADIUS + 4, ring);
-        if (show_delete)
-        {
-            DrawTextShadowed
-            (
-                GetGameFont(), 
-                "X", 
-                static_cast<int>(pos.x) - 4,
-                static_cast<int>(pos.y) - 5,
-                10,
-                RED
-            );
-        }
-    }
-}
-
 void DrawInputNodes(int input_bits[4], const t_Pin* hovered_pin, float anim_time)
 {
     for (int i = 0; i < 4; i++)
@@ -281,55 +263,6 @@ void DrawOutputNode(int output_bits[4], int target_hex, const t_Pin* hovered_pin
     }
 }
 
-static Rectangle GetMenuButtonRectRaw()
-{
-    return { 576.0f, 8.0f, 130.0f, 24.0f };
-}
-
-Rectangle GetMenuButtonRect()
-{
-    return GetMenuButtonRectRaw();
-}
-
-bool CheckMenuButtonClick(Vector2 mouse_pos)
-{
-    return CheckCollisionPointRec(mouse_pos, GetMenuButtonRectRaw());
-}
-
-void DrawMenuButton(float anim_time)
-{
-    Font font = GetGameFont();
-    Rectangle r = GetMenuButtonRectRaw();
-    bool hovered = CheckCollisionPointRec(GetMousePosition(), r);
-
-    Color bg = hovered ? Color{ 30, 40, 80, 255 } : Color{ 15, 20, 40, 255 };
-    Color border = hovered ? Color{ 0, 200, 255, 255 } : Color{ 40, 80, 120, 255 };
-
-    if (hovered)
-    {
-        float pulse = 0.5f + 0.5f * sinf(anim_time * 4.0f);
-        DrawRectangleRounded({ r.x - 2, r.y - 2, r.width + 4, r.height + 4 }, 0.3f, 6, ColorAlpha(SKYBLUE, 0.15f * pulse));
-    }
-
-    DrawRectangleRounded(r, 0.3f, 6, bg);
-    DrawRectangleRoundedLines(r, 0.3f, 6, border);
-
-    Vector2 text_size = MeasureTextEx(font, "MENU", 14.0f, 1.0f);
-    float tx = r.x + (r.width - text_size.x) / 2.0f;
-    float ty = r.y + (r.height - text_size.y) / 2.0f;
-    DrawTextShadowed(font, "MENU", static_cast<int>(tx), static_cast<int>(ty), 14, hovered ? WHITE : Color{ 150, 180, 220, 255 });
-}
-
-static Rectangle GetPaletteButtonRect(int index)
-{
-    float btn_w = 68;
-    float spacing = 4;
-    float total_gate = GATE_COUNT * btn_w + (GATE_COUNT - 1) * spacing;
-    float total = total_gate + spacing + 90;
-    float start_x = (720 - total) / 2;
-    return {start_x + index * (btn_w + spacing), PALETTE_Y + 12, btn_w, 32};
-}
-
 int PickPaletteGate(Vector2 mouse_pos)
 {
     for (int i = 0; i < GATE_COUNT; i++)
@@ -338,16 +271,6 @@ int PickPaletteGate(Vector2 mouse_pos)
         if (CheckCollisionPointRec(mouse_pos, r)) return i;
     }
     return -1;
-}
-
-Rectangle GetClearButtonRect()
-{
-    float btn_w = 68;
-    float spacing = 4;
-    float total_gate = GATE_COUNT * btn_w + (GATE_COUNT - 1) * spacing;
-    float total = total_gate + spacing + 90;
-    float start_x = (720 - total) / 2;
-    return {start_x + total_gate + spacing, PALETTE_Y + 12, 90, 32};
 }
 
 void DrawPalette(int selected_index)
@@ -422,3 +345,4 @@ void DrawPalette(int selected_index)
     DrawRectangleRoundedLines(clear_r, 0.2f, 6, clear_hovered ? Color{255, 100, 100, 255} : Color{255, 50, 80, 255});
     DrawTextCentered(GetGameFont(), "CLEAR", clear_r, 14, clear_hovered ? WHITE : Color{255, 100, 120, 255});
 }
+
