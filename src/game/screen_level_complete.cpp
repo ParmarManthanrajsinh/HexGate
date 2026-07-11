@@ -2,10 +2,10 @@
 #include "assets.h"
 #include "hex_grid.h"
 #include "text_util.h"
-#include "gates.h"
+#include "gates.h" // IWYU pragma: keep
 #include <cmath>
 #include <array>
-#include <cstring>
+#include <cstring> // IWYU pragma: keep
 #include <raylib.h>
 
 GameState UpdateLevelComplete(float, const GameStats&)

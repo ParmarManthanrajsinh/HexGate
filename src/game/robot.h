@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include "gates.h" // For GateType
-#include "hex_grid.h" // For t_Pin
+#include "hex_grid.h" // IWYU pragma: keep
 
 enum class RobotMood { IDLE, HAPPY, ANGRY, SURPRISED, SAD, EXCITED, SASSY };
 

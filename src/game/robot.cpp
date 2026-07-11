@@ -1,16 +1,17 @@
 #include "robot.h"
 #include "assets.h"
 #include "gates.h"
-#include "hex_grid.h"
+#include "hex_grid.h" // IWYU pragma: keep
 #include "game.h"
 #include "text_util.h"
 #include "audio.h"
 #include <cmath>
-#include <map>
+#include <map> // IWYU pragma: keep
 #include <cstdlib>
 
 // --- Dialogs ---
-static std::vector<std::string> diag_and = {
+static std::vector<std::string> diag_and = 
+{
     "AND gate! The beige sedan of logic gates.",
     "You ANDed that in. I see what you did there.",
     "AND. Short for 'and-venture capital' of your circuit.",
@@ -19,7 +20,8 @@ static std::vector<std::string> diag_and = {
     "AND so it begins...",
 };
 
-static std::vector<std::string> diag_or = {
+static std::vector<std::string> diag_or = 
+{
     "OR gate! Finally, some decision paralysis.",
     "OR you could've chosen XOR. But OR is fine, I guess.",
     "The OR gate: for when you can't commit.",
@@ -28,7 +30,8 @@ static std::vector<std::string> diag_or = {
     "OR... you could restart. No? We're doing OR? Fine.",
 };
 
-static std::vector<std::string> diag_not = {
+static std::vector<std::string> diag_not = 
+{
     "NOT gate! Philosophically questioning everything.",
     "NOT your average gate. (See what I did there?)",
     "Invert! Invert! The NOT gate has no retort!",
@@ -37,7 +40,8 @@ static std::vector<std::string> diag_not = {
     "NOT bad for a first gate.",
 };
 
-static std::vector<std::string> diag_xor = {
+static std::vector<std::string> diag_xor = 
+{
     "XOR gate! Fancy! You read the manual!",
     "XOR means 'exclusive or'. You feel exclusive now, right?",
     "Ooh, XOR. Somebody's compensating for something.",
@@ -46,7 +50,8 @@ static std::vector<std::string> diag_xor = {
     "XORing you been keeping those skills a secret?",
 };
 
-static std::vector<std::string> diag_nand = {
+static std::vector<std::string> diag_nand = 
+{
     "NAND gate! The people's gate. Very democratic.",
     "NAND: NOT + AND = NOT what you expected? Well played.",
     "Fun fact: every circuit can be built with just NAND gates. You're welcome.",
@@ -55,7 +60,8 @@ static std::vector<std::string> diag_nand = {
     "NAND said, 'I'm not like other gates.'",
 };
 
-static std::vector<std::string> diag_nor = {
+static std::vector<std::string> diag_nor = 
+{
     "NOR gate. The 'nope' of logic gates.",
     "NOR-mal Tuesday with this gate.",
     "NOR: the gate that says 'neither'. Very fence-sitter energy.",
@@ -64,7 +70,8 @@ static std::vector<std::string> diag_nor = {
     "NOR you going to use any other gates?",
 };
 
-static std::vector<std::string> diag_xnor = {
+static std::vector<std::string> diag_xnor = 
+{
     "XNOR gate! Equality matters in this household.",
     "XNOR: the 'same difference' gate.",
     "XNOR is like XOR's chill twin. Same but different. Wait—",
@@ -398,7 +405,7 @@ void Robot::UpdateAnimation(float dt, Vector2 mouse_pos) {
     if (bot.dialog_timer > 0) 
     {
         bot.dialog_timer -= dt;
-        if (bot.type_cursor < bot.current_dialog.length())
+        if (bot.type_cursor < static_cast<int>(bot.current_dialog.length()))
         {
             bot.type_timer += dt;
             if (bot.type_timer > 0.09f)
@@ -414,12 +421,23 @@ void Robot::UpdateAnimation(float dt, Vector2 mouse_pos) {
     }
 }
 
-void Robot::Update(float game_anim_time, Vector2 mouse_pos, float level_timer, 
-                   int output_bits[4], int target_hex, bool solved,
-                   float mouse_still_time, float last_action_time,
-                   float& idle_timer, int gate_type_counts[7],
-                   int delete_count, int wire_count,
-                   int obstacle_attempts, int& matching_bits_prev) 
+void Robot::Update
+(
+    float game_anim_time, 
+    Vector2 mouse_pos, 
+    float level_timer[[maybe_unused]], 
+    int output_bits[4], 
+    int target_hex, 
+    bool solved,
+    float mouse_still_time[[maybe_unused]], 
+    float last_action_time,
+    float& idle_timer, 
+    [[maybe_unused]]int gate_type_counts[7],
+    int delete_count[[maybe_unused]], 
+    int wire_count[[maybe_unused]],
+    int obstacle_attempts[[maybe_unused]], 
+    int& matching_bits_prev
+) 
 {
     float dt = GetFrameTime();
     UpdateAnimation(dt, mouse_pos);
@@ -429,7 +447,8 @@ void Robot::Update(float game_anim_time, Vector2 mouse_pos, float level_timer,
     float dy = mouse_pos.y - bot.base_pos.y;
     float dist = sqrtf(dx*dx + dy*dy);
     
-    if (dist < 30.0f) {
+    if (dist < 30.0f) 
+    {
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
         {
             if (bot.boop_timer <= 0.0f)
@@ -469,89 +488,138 @@ void Robot::Update(float game_anim_time, Vector2 mouse_pos, float level_timer,
     }
     
     // Patience decay
-    else if (dist < 150.0f) {
-        if (bot.proximity_cooldown <= 0.0f) {
+    else if (dist < 150.0f) 
+    {
+        if (bot.proximity_cooldown <= 0.0f) 
+        {
             bot.proximity_cooldown = 3.0f;
             Speak(GetRandomDialog(diag_near_zone), 1, RobotMood::SASSY);
         }
     }
     
     // Idle & Hesitation
-    if (idle_timer > 10.0f) {
-        Speak(TextFormat(GetRandomDialog(diag_hesitation).c_str(), (int)idle_timer), 0, RobotMood::IDLE);
+    if (idle_timer > 10.0f) 
+    {
+        Speak
+        (
+            TextFormat(GetRandomDialog(diag_hesitation).c_str(), (int)idle_timer), 0, RobotMood::IDLE
+        );
         idle_timer = 0; // Don't spam
     }
     
     // Hints
     float time_since_action = game_anim_time - last_action_time;
-    if (time_since_action > 25.0f && !solved && game_anim_time - bot.last_hint_time > 30.0f) {
+    if (time_since_action > 25.0f && !solved && game_anim_time - bot.last_hint_time > 30.0f) 
+    {
         bot.last_hint_time = game_anim_time;
         // Find first mismatching bit
         int wrong_bit = -1;
-        for (int i=0; i<4; i++) {
-            if (output_bits[i] != ((target_hex >> i) & 1)) {
+        for (int i=0; i<4; i++) 
+        {
+            if (output_bits[i] != ((target_hex >> i) & 1)) 
+            {
                 wrong_bit = i;
                 break;
             }
         }
-        if (wrong_bit >= 0) {
-            Speak(TextFormat(GetRandomDialog(diag_hints).c_str(), wrong_bit, ((target_hex >> wrong_bit) & 1)), 2, RobotMood::SASSY);
+        if (wrong_bit >= 0) 
+        {
+            Speak
+            (
+                TextFormat
+                (
+                    GetRandomDialog(diag_hints).c_str(), wrong_bit, ((target_hex >> wrong_bit) & 1)
+                ), 2, RobotMood::SASSY
+            );
         }
     }
     
     // Patience decay
-    if (time_since_action > 5.0f) {
+    if (time_since_action > 5.0f)
+    {
         bot.patience = std::max(0.0f, bot.patience - dt * 0.1f);
     }
     
     // Bit matching logic
     int match_count = 0;
-    for (int i=0; i<4; i++) {
+    for (int i=0; i<4; i++) 
+    {
         if (output_bits[i] == ((target_hex >> i) & 1)) match_count++;
     }
-    if (match_count != matching_bits_prev) {
-        if (match_count == 3) {
+    if (match_count != matching_bits_prev) 
+    {
+        if (match_count == 3) 
+        {
             Speak(GetRandomDialog(diag_close_3_bits), 3, RobotMood::EXCITED);
-        } else if (match_count > matching_bits_prev && match_count > 0) {
-            Speak(TextFormat(GetRandomDialog(diag_progress_bits_increased).c_str(), match_count, match_count * 25), 2, RobotMood::HAPPY);
-        } else if (match_count < matching_bits_prev) {
-            Speak(TextFormat(GetRandomDialog(diag_regression_bits_decreased).c_str(), matching_bits_prev), 2, RobotMood::SAD);
+        } 
+        else if (match_count > matching_bits_prev && match_count > 0) 
+        {
+            Speak
+            (
+                TextFormat
+                (
+                    GetRandomDialog(diag_progress_bits_increased).c_str(), match_count, match_count * 25
+                ), 2, RobotMood::HAPPY
+            );
+        } 
+        else if (match_count < matching_bits_prev) 
+        {
+            Speak
+            (
+                TextFormat
+                (
+                    GetRandomDialog(diag_regression_bits_decreased).c_str(), matching_bits_prev
+                ), 2, RobotMood::SAD
+            );
         }
         matching_bits_prev = match_count;
     }
     
     // Pin hovering logic
-    if (bot.is_hovering_pin) {
+    if (bot.is_hovering_pin) 
+    {
         bot.pin_hover_timer += dt;
-        if (bot.pin_hover_timer > 2.0f) {
-            if (bot.hovered_pin_type == 0) Speak(GetRandomDialog(diag_input_pin), 1, RobotMood::IDLE);
-            else if (bot.hovered_pin_type == 1) Speak(GetRandomDialog(diag_gate_pin), 1, RobotMood::IDLE);
-            else if (bot.hovered_pin_type == 2) Speak(GetRandomDialog(diag_output_pin), 1, RobotMood::IDLE);
+        if (bot.pin_hover_timer > 2.0f) 
+        {
+            if (bot.hovered_pin_type == 0) 
+                Speak(GetRandomDialog(diag_input_pin), 1, RobotMood::IDLE);
+            else if (bot.hovered_pin_type == 1) 
+                Speak(GetRandomDialog(diag_gate_pin), 1, RobotMood::IDLE);
+            else if (bot.hovered_pin_type == 2) 
+                Speak(GetRandomDialog(diag_output_pin), 1, RobotMood::IDLE);
             bot.pin_hover_timer = 0.0f; // reset so we don't spam
         }
     }
 }
 
-void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
+void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 mouse_pos) 
+{
     float pulse = 1.0f + sinf(bot.anim_time * 1.2f) * 0.025f;
     float bob_speed = 1.8f;
     float bob_amp = 2.5f;
     Color border_color = {0, 200, 255, 255};
     
     // Mood visuals
-    if (bot.current_mood == RobotMood::HAPPY || bot.current_mood == RobotMood::EXCITED) {
+    if (bot.current_mood == RobotMood::HAPPY || bot.current_mood == RobotMood::EXCITED) 
+    {
         bob_speed = 3.5f;
         bob_amp = 4.0f;
         border_color = {50, 255, 100, 255};
-    } else if (bot.current_mood == RobotMood::ANGRY) {
+    } 
+    else if (bot.current_mood == RobotMood::ANGRY) 
+    {
         bob_speed = 5.0f;
         bob_amp = 1.5f;
         border_color = {255, 50, 50, 255};
-    } else if (bot.current_mood == RobotMood::SAD) {
+    }
+    else if (bot.current_mood == RobotMood::SAD) 
+    {
         bob_speed = 0.8f;
         bob_amp = 1.0f;
         border_color = {100, 100, 255, 255};
-    } else if (bot.current_mood == RobotMood::SURPRISED) {
+    } 
+    else if (bot.current_mood == RobotMood::SURPRISED) 
+    {
         pulse = 1.0f + sinf(bot.anim_time * 6.0f) * 0.05f;
         border_color = {255, 200, 50, 255};
     }
@@ -561,7 +629,8 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
     
     // Boop squish (uniform scale — DrawPoly doesn't support non-uniform)
     float boop_scale = 1.0f;
-    if (bot.boop_timer > 0) {
+    if (bot.boop_timer > 0) 
+    {
         float t = bot.boop_timer / 0.3f;
         boop_scale = 1.0f - sinf(t * PI) * 0.2f;
     }
@@ -579,32 +648,52 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
     Vector2 left_eye = { p.x - 9, p.y - 4 };
     Vector2 right_eye = { p.x + 9, p.y - 4 };
     
-    if (bot.is_blinking) {
+    if (bot.is_blinking) 
+    {
         DrawLineEx({left_eye.x - 6, left_eye.y}, {left_eye.x + 6, left_eye.y}, 2.0f, WHITE);
         DrawLineEx({right_eye.x - 6, right_eye.y}, {right_eye.x + 6, right_eye.y}, 2.0f, WHITE);
-    } else {
+    } 
+    else 
+    {
         float eye_r = 7.0f;
         if (bot.current_mood == RobotMood::SURPRISED) eye_r = 9.0f;
         DrawCircleV(left_eye, eye_r, WHITE);
         DrawCircleV(right_eye, eye_r, WHITE);
-        DrawCircleV({left_eye.x + bot.eye_offset.x, left_eye.y + bot.eye_offset.y}, eye_r * 0.5f, Color{20, 25, 50, 255});
-        DrawCircleV({right_eye.x + bot.eye_offset.x, right_eye.y + bot.eye_offset.y}, eye_r * 0.5f, Color{20, 25, 50, 255});
+        DrawCircleV
+        (
+            {left_eye.x + bot.eye_offset.x, left_eye.y + bot.eye_offset.y}, 
+            eye_r * 0.5f, Color{20, 25, 50, 255}
+        );
+        DrawCircleV
+        (
+            {right_eye.x + bot.eye_offset.x, right_eye.y + bot.eye_offset.y}, 
+            eye_r * 0.5f, Color{20, 25, 50, 255}
+        );
     }
     
     // Draw Mouth
-    if (bot.current_mood == RobotMood::HAPPY || bot.current_mood == RobotMood::EXCITED) {
+    if (bot.current_mood == RobotMood::HAPPY || bot.current_mood == RobotMood::EXCITED) 
+    {
         DrawLineEx({p.x - 5, p.y + 10}, {p.x, p.y + 14}, 2.0f, WHITE);
         DrawLineEx({p.x, p.y + 14}, {p.x + 5, p.y + 10}, 2.0f, WHITE);
-    } else if (bot.current_mood == RobotMood::SAD) {
+    } 
+    else if (bot.current_mood == RobotMood::SAD) 
+    {
         DrawLineEx({p.x - 5, p.y + 14}, {p.x, p.y + 10}, 2.0f, WHITE);
         DrawLineEx({p.x, p.y + 10}, {p.x + 5, p.y + 14}, 2.0f, WHITE);
-    } else if (bot.current_mood == RobotMood::ANGRY || bot.patience < 20.0f) { // Fidgety mouth if low patience
+    } 
+    else if (bot.current_mood == RobotMood::ANGRY || bot.patience < 20.0f) 
+    { // Fidgety mouth if low patience
         DrawLineEx({p.x - 6, p.y + 12}, {p.x - 2, p.y + 10}, 2.0f, WHITE);
         DrawLineEx({p.x - 2, p.y + 10}, {p.x + 2, p.y + 14}, 2.0f, WHITE);
         DrawLineEx({p.x + 2, p.y + 14}, {p.x + 6, p.y + 12}, 2.0f, WHITE);
-    } else if (bot.current_mood == RobotMood::SURPRISED) {
+    } 
+    else if (bot.current_mood == RobotMood::SURPRISED) 
+    {
         DrawCircleV({p.x, p.y + 12}, 3.0f, WHITE);
-    } else {
+    }
+    else 
+    {
         // IDLE or SASSY
         DrawLineEx({p.x - 4, p.y + 12}, {p.x + 4, p.y + 12}, 2.0f, WHITE);
     }
@@ -616,7 +705,8 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
     DrawRectangle(p.x - meter_w/2, p.y + 25, meter_w * (bot.trust / 100.0f), 4, meter_color);
     
     // Draw Speech Bubble
-    if (bot.dialog_timer > 0) {
+    if (bot.dialog_timer > 0) 
+    {
         // Fade in/out
         float alpha = 1.0f;
         float elapsed = bot.dialog_duration - bot.dialog_timer;
@@ -625,12 +715,13 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
         
         // Pop scale (bubble background only)
         float b_scale = 1.0f;
-        if (elapsed < 0.1f) {
+        if (elapsed < 0.1f) 
+        {
             b_scale = 0.8f + (elapsed / 0.1f) * 0.2f;
         }
         
         std::string full_text = bot.current_dialog.substr(0, bot.type_cursor);
-        if (bot.type_cursor < bot.current_dialog.length()) full_text += "_";
+        if (bot.type_cursor < static_cast<int>(bot.current_dialog.length())) full_text += "_";
         
         Font f = GetGameFont();
         
@@ -640,23 +731,33 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
         std::string current_word = "";
         float font_size = 14.0f * b_scale;
         
-        for (char c : full_text) {
-            if (c == ' ') {
-                if (MeasureTextEx(f, (current_line + current_word).c_str(), font_size, 1).x > 200) {
+        for (char c : full_text) 
+        {
+            if (c == ' ') 
+            {
+                if (MeasureTextEx(f, (current_line + current_word).c_str(), font_size, 1).x > 200) 
+                {
                     if (!current_line.empty()) wrapped_text += current_line + "\n";
                     current_line = current_word + " ";
-                } else {
+                } 
+                else 
+                {
                     current_line += current_word + " ";
                 }
                 current_word = "";
-            } else {
+            } 
+            else 
+            {
                 current_word += c;
             }
         }
-        if (MeasureTextEx(f, (current_line + current_word).c_str(), font_size, 1).x > 200) {
+        if (MeasureTextEx(f, (current_line + current_word).c_str(), font_size, 1).x > 200) 
+        {
             if (!current_line.empty()) wrapped_text += current_line + "\n";
             wrapped_text += current_word;
-        } else {
+        } 
+        else 
+        {
             wrapped_text += current_line + current_word;
         }
         
@@ -665,10 +766,14 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
         
         float pad_lr = 14.0f * b_scale;
         float pad_tb = 8.0f * b_scale;
-        Rectangle bub_rect = {bubble_pos.x - pad_lr, bubble_pos.y - pad_tb, (size.x + 28) * b_scale, (size.y + 16) * b_scale};
+        Rectangle bub_rect = 
+        {
+            bubble_pos.x - pad_lr, bubble_pos.y - pad_tb, (size.x + 28) * b_scale, (size.y + 16) * b_scale
+        };
         
         // Clamp to right screen edge
-        if (bub_rect.x + bub_rect.width > 715) {
+        if (bub_rect.x + bub_rect.width > 715) 
+        {
             float shift = (bub_rect.x + bub_rect.width) - 715;
             bubble_pos.x -= shift;
             bub_rect.x -= shift;
@@ -694,22 +799,42 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
         float draw_y = bubble_pos.y;
         size_t pos_idx = 0;
         size_t next_pos = 0;
-        while ((next_pos = wrapped_text.find('\n', pos_idx)) != std::string::npos) {
+        while ((next_pos = wrapped_text.find('\n', pos_idx)) != std::string::npos) 
+        {
             std::string line = wrapped_text.substr(pos_idx, next_pos - pos_idx);
-            DrawTextShadowed(f, line.c_str(), static_cast<int>(bubble_pos.x), static_cast<int>(draw_y), static_cast<int>(font_size), ColorAlpha(WHITE, alpha));
+            DrawTextShadowed
+            (
+                f, 
+                line.c_str(), 
+                static_cast<int>(bubble_pos.x), 
+                static_cast<int>(draw_y), 
+                static_cast<int>(font_size), 
+                ColorAlpha(WHITE, alpha)
+            );
             draw_y += font_size + 2.0f; // line spacing
             pos_idx = next_pos + 1;
         }
         std::string line = wrapped_text.substr(pos_idx);
-        DrawTextShadowed(f, line.c_str(), static_cast<int>(bubble_pos.x), static_cast<int>(draw_y), static_cast<int>(font_size), ColorAlpha(WHITE, alpha));
+        DrawTextShadowed
+        (
+            f, 
+            line.c_str(), 
+            static_cast<int>(bubble_pos.x), 
+            static_cast<int>(draw_y), 
+            static_cast<int>(font_size), 
+            ColorAlpha(WHITE, alpha)
+        );
     }
 }
 
 // Hook Implementations
-void Robot::OnGatePlaced(GateType type, int total_gates) {
-    if (total_gates == 9) Speak(TextFormat(GetRandomDialog(diag_efficiency).c_str(), total_gates), 2, RobotMood::SASSY);
+void Robot::OnGatePlaced(GateType type, int total_gates) 
+{
+    if (total_gates == 9) 
+        Speak(TextFormat(GetRandomDialog(diag_efficiency).c_str(), total_gates), 2, RobotMood::SASSY);
     std::vector<std::string>* list = nullptr;
-    switch(type) {
+    switch(type) 
+    {
         case GateType::AND: list = &diag_and; break;
         case GateType::OR: list = &diag_or; break;
         case GateType::NOT: list = &diag_not; break;
@@ -720,35 +845,51 @@ void Robot::OnGatePlaced(GateType type, int total_gates) {
     }
     if (list) Speak(GetRandomDialog(*list), 1);
 }
-void Robot::OnFirstGatePlaced(GateType type) { Speak(GetRandomDialog(diag_first_gate), 2, RobotMood::HAPPY); }
-void Robot::OnWireConnected(int total_wires, int total_gates) { 
-    if (total_wires == 11) Speak(GetRandomDialog(diag_spaghetti), 2, RobotMood::SASSY);
-    else Speak(GetRandomDialog(diag_wire_connected), 1); 
+void Robot::OnFirstGatePlaced([[maybe_unused]]GateType type) 
+{ 
+    Speak(GetRandomDialog(diag_first_gate), 2, RobotMood::HAPPY); 
 }
-void Robot::OnFirstWireConnected() { Speak(GetRandomDialog(diag_first_wire), 2, RobotMood::HAPPY); }
-void Robot::OnCheat() {
+void Robot::OnWireConnected(int total_wires, [[maybe_unused]]int total_gates) 
+{ 
+    if (total_wires == 11) 
+        Speak(GetRandomDialog(diag_spaghetti), 2, RobotMood::SASSY);
+    else 
+        Speak(GetRandomDialog(diag_wire_connected), 1); 
+}
+void Robot::OnFirstWireConnected() 
+{ 
+    Speak(GetRandomDialog(diag_first_wire), 2, RobotMood::HAPPY); 
+}
+void Robot::OnCheat() 
+{
     static bool has_cheated = false;
-    if (!has_cheated) {
+    if (!has_cheated) 
+    {
         has_cheated = true;
         Speak(GetRandomDialog(diag_first_cheat_of_session), 3, RobotMood::ANGRY);
     }
 }
-void Robot::OnWireDragCancelled() {
-    float current_time = (float)GetTime();
-    if (current_time - bot.wire_cancel_timer < 10.0f) {
+void Robot::OnWireDragCancelled() 
+{
+    float current_time = static_cast<float>(GetTime());
+    if (current_time - bot.wire_cancel_timer < 10.0f) 
+    {
         bot.wire_cancel_count++;
         if (bot.wire_cancel_count >= 3) 
         {
             Speak(GetRandomDialog(diag_wire_anxiety), 3, RobotMood::SAD);
             bot.wire_cancel_count = 0;
         }
-    } else {
+    } 
+    else 
+    {
         bot.wire_cancel_count = 1;
     }
     bot.wire_cancel_timer = current_time;
 }
-void Robot::OnWireDeleted() { 
-    float current_time = (float)GetTime();
+void Robot::OnWireDeleted() 
+{
+    float current_time = static_cast<float>(GetTime());
     if (current_time - bot.last_delete_time < 2.0f) bot.recent_deletes++;
     else bot.recent_deletes = 1;
     bot.last_delete_time = current_time;
@@ -756,21 +897,27 @@ void Robot::OnWireDeleted() {
     if (bot.recent_deletes >= 5) Speak(TextFormat(GetRandomDialog(diag_deletion_spree).c_str(), bot.recent_deletes), 3, RobotMood::SAD);
     else Speak(GetRandomDialog(diag_wire_deleted_disconnected), 3, RobotMood::SAD); 
 }
-void Robot::OnGateDeleted(GateType type, int total_gates) { 
-    float current_time = (float)GetTime();
+void Robot::OnGateDeleted([[maybe_unused]]GateType type, [[maybe_unused]]int total_gates) 
+{
+    float current_time = static_cast<float>(GetTime());
     if (current_time - bot.last_delete_time < 2.0f) bot.recent_deletes++;
     else bot.recent_deletes = 1;
     bot.last_delete_time = current_time;
     
-    if (bot.recent_deletes >= 3) {
+    if (bot.recent_deletes >= 3) 
+    {
         bot.trust = std::max(0, bot.trust - 1);
         bot.patience = std::max(0.0f, bot.patience - 5.0f);
         Speak(TextFormat(GetRandomDialog(diag_deletion_spree).c_str(), bot.recent_deletes), 3, RobotMood::SAD);
     }
     else Speak(GetRandomDialog(diag_gate_deleted), 3, RobotMood::SAD); 
 }
-void Robot::OnClearPressed() { Speak(GetRandomDialog(diag_clear), 2, RobotMood::SURPRISED); }
-void Robot::OnSolved(int total_gates, int total_wires, float level_timer) { 
+void Robot::OnClearPressed() 
+{
+    Speak(GetRandomDialog(diag_clear), 2, RobotMood::SURPRISED);
+}
+void Robot::OnSolved(int total_gates, int total_wires, float level_timer) 
+{
     bot.trust = std::min(100, bot.trust + 1);
     bot.patience = std::min(100.0f, bot.patience + 10.0f);
     if (total_gates == 0) Speak(GetRandomDialog(diag_zero_gate_solve), 4, RobotMood::SURPRISED);
@@ -780,11 +927,16 @@ void Robot::OnSolved(int total_gates, int total_wires, float level_timer) {
     else if (level_timer < 15.0f) Speak(GetRandomDialog(diag_fast_solve), 4, RobotMood::EXCITED);
     else Speak(GetRandomDialog(diag_normal_solve), 4, RobotMood::EXCITED);
 }
-void Robot::OnLevelStart(int target_hex) { Speak(TextFormat(GetRandomDialog(diag_level_start).c_str(), target_hex), 2); }
-void Robot::OnPaletteHover(GateType type) { 
-    float current_time = (float)GetTime();
+void Robot::OnLevelStart(int target_hex) 
+{
+    Speak(TextFormat(GetRandomDialog(diag_level_start).c_str(), target_hex), 2);
+}
+void Robot::OnPaletteHover(GateType type) 
+{
+    float current_time = static_cast<float>(GetTime())  ;
     int t = static_cast<int>(type);
-    if (bot.last_palette_hover_type != t || current_time - bot.last_palette_hover_time > 10.0f) {
+    if (bot.last_palette_hover_type != t || current_time - bot.last_palette_hover_time > 10.0f) 
+    {
         bot.last_palette_hover_type = t;
         bot.last_palette_hover_time = current_time;
         std::string gate_name = GateTypeToString(type);
