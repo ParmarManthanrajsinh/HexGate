@@ -23,7 +23,7 @@ int main()
 #endif
 
     SetConfigFlags(FLAG_MSAA_4X_HINT);
-    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Hex Merge");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "HexForge");
     InitAudio();
     InitGameAssets();
     {

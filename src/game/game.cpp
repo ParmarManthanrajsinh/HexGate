@@ -4,6 +4,7 @@
 #include "circuit.h"
 #include "gates.h"
 #include "hex_grid.h"
+#include "menu.h"
 #include "text_util.h" // IWYU pragma: keep
 #include "ui.h"
 #include "wires.h"
@@ -22,7 +23,8 @@ namespace
 }
 
 Game::Game()
-: target_hex(0),
+: game_state(GameState::TITLE_SCREEN),
+  target_hex(0),
   gate_id_counter(1),
   solved(false),
   anim_time(0),
@@ -392,6 +394,27 @@ void Game::HandleRightClick(Vector2 pos)
 
 void Game::Update()
 {
+    if (game_state != GameState::PLAYING)
+    {
+        if (game_state == GameState::TITLE_SCREEN)
+        {
+            GameState next = UpdateTitleScreen(anim_time);
+            if (next == GameState::PLAYING) game_state = GameState::PLAYING;
+            else if (next == GameState::HOW_TO_PLAY) game_state = GameState::HOW_TO_PLAY;
+        }
+        else if (game_state == GameState::HOW_TO_PLAY)
+        {
+            GameState next = UpdateHowToPlay(anim_time);
+            if (next == GameState::TITLE_SCREEN) game_state = GameState::TITLE_SCREEN;
+            else if (next == GameState::PLAYING) game_state = GameState::PLAYING;
+        }
+
+        float dt = GetFrameTime();
+        anim_time += dt;
+        if (screen_shake_time > 0) screen_shake_time -= dt;
+        return;
+    }
+
     mouse_pos = GetMousePosition();
     hovered_pin = FindPinAt(mouse_pos);
     hovered_cell = GetGridCell(mouse_pos);
@@ -490,6 +513,21 @@ void Game::Update()
 
 void Game::Draw()
 {
+    if (game_state != GameState::PLAYING)
+    {
+        BeginDrawing();
+        if (game_state == GameState::TITLE_SCREEN)
+        {
+            DrawTitleScreen(anim_time);
+        }
+        else if (game_state == GameState::HOW_TO_PLAY)
+        {
+            DrawHowToPlay(anim_time);
+        }
+        EndDrawing();
+        return;
+    }
+
     BeginTextureMode(render_target);
     ClearBackground({13, 13, 26, 255});
 

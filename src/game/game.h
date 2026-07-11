@@ -7,6 +7,7 @@
 #include "circuit.h"
 #include "gates.h"
 #include "hex_grid.h"
+#include "menu.h"
 #include "wires.h"
 
 #if defined(PLATFORM_WEB)
@@ -46,6 +47,9 @@ class Game
     bool ShouldClose() const;
 
   private:
+    // Game state
+    GameState game_state;
+
     // Core state
     std::vector<t_Gate> gates;
     std::vector<t_Wire> wires;

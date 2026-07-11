@@ -3,6 +3,7 @@
 #include "text_util.h"
 #include "assets.h"
 #include <cmath> // IWYU pragma: keep
+#include <cstring>
 #include <raylib.h>
 #include <span>
 
@@ -177,8 +178,8 @@ void DrawGateShape
 
     const char* label = GateTypeToString(gate.type);
     
-    // Switch to smaller font for some labels if needed, but text is fine.
-    int font_size = 18;
+    int label_len = static_cast<int>(strlen(label));
+    int font_size = (label_len <= 3) ? 18 : (label_len <= 4) ? 15 : 13;
     DrawTextCentered
     (
         GetGameFont(), label, {x, y, w, h}, font_size,
