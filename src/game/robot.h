@@ -71,6 +71,7 @@ public:
     void OnWireConnected(int total_wires, int total_gates);
     void OnFirstWireConnected();
     void OnWireDeleted();
+    void OnCheat();
     void OnGateDeleted(GateType type, int total_gates);
     void OnClearPressed();
     void OnSolved(int total_gates, int total_wires, float level_timer);

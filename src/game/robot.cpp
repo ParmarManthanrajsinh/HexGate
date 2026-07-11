@@ -350,7 +350,7 @@ std::string Robot::GetRandomDialog(const std::vector<std::string>& list) {
 }
 
 void Robot::Speak(const std::string& text, int priority, RobotMood mood, float duration) {
-    if (priority < bot.dialog_priority && bot.dialog_timer > 0) return;
+    if (priority <= bot.dialog_priority && bot.dialog_timer > 0) return;
     bot.current_dialog = text;
     bot.type_timer = 0.0f;
     bot.dialog_timer = duration;
@@ -427,21 +427,45 @@ void Robot::Update(float game_anim_time, Vector2 mouse_pos, float level_timer,
     float dist = sqrtf(dx*dx + dy*dy);
     
     if (dist < 30.0f) {
-        if (bot.boop_timer <= 0.0f) {
-            bot.boop_timer = 0.3f;
-            PlaySfx(SfxType::ROBOT_BOOP);
-        }
-        if (bot.proximity_cooldown <= 0.0f) {
-            bot.proximity_cooldown = 3.0f;
-            Speak(GetRandomDialog(diag_boop), 3, RobotMood::SURPRISED);
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+        {
+            if (bot.boop_timer <= 0.0f)
+            {
+                bot.boop_timer = 0.3f;
+                PlaySfx(SfxType::ROBOT_BOOP);
+            }
+            if (bot.proximity_cooldown <= 0.0f) 
+            {
+                bot.proximity_cooldown = 3.0f;
+                Speak(GetRandomDialog(diag_boop), 3, RobotMood::SURPRISED);
+            }
         }
     }
-    else if (dist < 75.0f) {
-        if (bot.proximity_cooldown <= 0.0f) {
+    else if (dist < 75.0f) 
+    {
+        if (bot.proximity_cooldown <= 0.0f) 
+        {
             bot.proximity_cooldown = 3.0f;
             Speak(GetRandomDialog(diag_close_zone), 2, RobotMood::ANGRY);
         }
     }
+    
+    static Vector2 prev_mouse_pos = mouse_pos;
+    float mouse_dx = mouse_pos.x - prev_mouse_pos.x;
+    float mouse_dy = mouse_pos.y - prev_mouse_pos.y;
+    float mouse_speed = sqrtf(mouse_dx*mouse_dx + mouse_dy*mouse_dy) / dt;
+    prev_mouse_pos = mouse_pos;
+    
+    static float speed_cooldown = 0.0f;
+    if (speed_cooldown > 0.0f) speed_cooldown -= dt;
+    
+    if (mouse_speed > 3000.0f && speed_cooldown <= 0.0f) 
+    {
+        speed_cooldown = 15.0f;
+        Speak(GetRandomDialog(diag_speed), 2, RobotMood::SURPRISED);
+    }
+    
+    // Patience decay
     else if (dist < 150.0f) {
         if (bot.proximity_cooldown <= 0.0f) {
             bot.proximity_cooldown = 3.0f;
@@ -473,7 +497,7 @@ void Robot::Update(float game_anim_time, Vector2 mouse_pos, float level_timer,
     }
     
     // Patience decay
-    if (mouse_still_time > 5.0f) {
+    if (time_since_action > 5.0f) {
         bot.patience = std::max(0.0f, bot.patience - dt * 0.1f);
     }
     
@@ -611,11 +635,11 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
         std::string wrapped_text = "";
         std::string current_line = "";
         std::string current_word = "";
-        float fsize = 13.0f;
+        float font_size = 14.0f * b_scale;
         
         for (char c : full_text) {
             if (c == ' ') {
-                if (MeasureTextEx(f, (current_line + current_word).c_str(), fsize, 1).x > 200) {
+                if (MeasureTextEx(f, (current_line + current_word).c_str(), font_size, 1).x > 200) {
                     if (!current_line.empty()) wrapped_text += current_line + "\n";
                     current_line = current_word + " ";
                 } else {
@@ -626,14 +650,14 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
                 current_word += c;
             }
         }
-        if (MeasureTextEx(f, (current_line + current_word).c_str(), fsize, 1).x > 200) {
+        if (MeasureTextEx(f, (current_line + current_word).c_str(), font_size, 1).x > 200) {
             if (!current_line.empty()) wrapped_text += current_line + "\n";
             wrapped_text += current_word;
         } else {
             wrapped_text += current_line + current_word;
         }
         
-        Vector2 size = MeasureTextEx(f, wrapped_text.c_str(), fsize, 1);
+        Vector2 size = MeasureTextEx(f, wrapped_text.c_str(), font_size, 1);
         Vector2 bubble_pos = { p.x - size.x / 2.0f, p.y - 55 - size.y };
         
         float pad_lr = 14.0f * b_scale;
@@ -669,12 +693,12 @@ void Robot::Draw(float game_anim_time, Vector2 mouse_pos) {
         size_t next_pos = 0;
         while ((next_pos = wrapped_text.find('\n', pos_idx)) != std::string::npos) {
             std::string line = wrapped_text.substr(pos_idx, next_pos - pos_idx);
-            DrawTextShadowed(f, line.c_str(), static_cast<int>(bubble_pos.x), static_cast<int>(draw_y), static_cast<int>(fsize), ColorAlpha(WHITE, alpha));
-            draw_y += 16.0f * b_scale; // line spacing
+            DrawTextShadowed(f, line.c_str(), static_cast<int>(bubble_pos.x), static_cast<int>(draw_y), static_cast<int>(font_size), ColorAlpha(WHITE, alpha));
+            draw_y += font_size + 2.0f; // line spacing
             pos_idx = next_pos + 1;
         }
         std::string line = wrapped_text.substr(pos_idx);
-        DrawTextShadowed(f, line.c_str(), static_cast<int>(bubble_pos.x), static_cast<int>(draw_y), static_cast<int>(fsize), ColorAlpha(WHITE, alpha));
+        DrawTextShadowed(f, line.c_str(), static_cast<int>(bubble_pos.x), static_cast<int>(draw_y), static_cast<int>(font_size), ColorAlpha(WHITE, alpha));
     }
 }
 
@@ -696,14 +720,22 @@ void Robot::OnGatePlaced(GateType type, int total_gates) {
 void Robot::OnFirstGatePlaced(GateType type) { Speak(GetRandomDialog(diag_first_gate), 2, RobotMood::HAPPY); }
 void Robot::OnWireConnected(int total_wires, int total_gates) { 
     if (total_wires == 11) Speak(GetRandomDialog(diag_spaghetti), 2, RobotMood::SASSY);
-    Speak(GetRandomDialog(diag_wire_connected), 1); 
+    else Speak(GetRandomDialog(diag_wire_connected), 1); 
 }
 void Robot::OnFirstWireConnected() { Speak(GetRandomDialog(diag_first_wire), 2, RobotMood::HAPPY); }
+void Robot::OnCheat() {
+    static bool has_cheated = false;
+    if (!has_cheated) {
+        has_cheated = true;
+        Speak(GetRandomDialog(diag_first_cheat_of_session), 3, RobotMood::ANGRY);
+    }
+}
 void Robot::OnWireDragCancelled() {
     float current_time = (float)GetTime();
     if (current_time - bot.wire_cancel_timer < 10.0f) {
         bot.wire_cancel_count++;
-        if (bot.wire_cancel_count >= 3) {
+        if (bot.wire_cancel_count >= 3) 
+        {
             Speak(GetRandomDialog(diag_wire_anxiety), 3, RobotMood::SAD);
             bot.wire_cancel_count = 0;
         }

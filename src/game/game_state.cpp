@@ -191,7 +191,8 @@ void Game::Update()
             if (hovered_cell.IsValid())
             {
                 bool is_obstacle = false;
-                for (const auto& o : obstacles) {
+                for (const auto& o : obstacles) 
+                {
                     if (o.row == hovered_cell.row && o.col == hovered_cell.col) { is_obstacle = true; break; }
                 }
 
@@ -269,6 +270,11 @@ void Game::Update()
         game_state = GameState::PLAYING_TO_TITLE_TRANSITION;
         transition_time = 0;
         PlaySfx(SfxType::SOLVED);
+    }
+    
+    if (wire_drag_state.IsActive() || dragging_gate_id != -1) 
+    {
+        robot_last_action_time = anim_time;
     }
     
     robot.Update(anim_time, mouse_pos, level_timer, 
