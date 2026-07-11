@@ -56,13 +56,15 @@ namespace
                 {bounds.x - 3, bounds.y - 3, bounds.width + 6, bounds.height + 6},
                 0.3f, 8, ColorAlpha(base_color, 0.15f)
             );
-            
+
             // Animated circuit border
             float border_anim = fmodf(anim_time * 200.0f, bounds.width + bounds.height);
             if (border_anim < bounds.width) {
                 DrawLineEx({bounds.x + border_anim, bounds.y}, {bounds.x + border_anim + 20, bounds.y}, 3.0f, base_color);
                 DrawLineEx({bounds.x + bounds.width - border_anim, bounds.y + bounds.height}, {bounds.x + bounds.width - border_anim - 20, bounds.y + bounds.height}, 3.0f, base_color);
-            } else {
+            }
+            else
+            {
                 float h_anim = border_anim - bounds.width;
                 DrawLineEx({bounds.x + bounds.width, bounds.y + h_anim}, {bounds.x + bounds.width, bounds.y + h_anim + 20}, 3.0f, base_color);
                 DrawLineEx({bounds.x, bounds.y + bounds.height - h_anim}, {bounds.x, bounds.y + bounds.height - h_anim - 20}, 3.0f, base_color);
@@ -94,11 +96,11 @@ namespace
             {
                 float x_off = (y % 80 == 0) ? 0 : 17.5f;
                 float wave = sinf(anim_time * 0.8f + x * 0.01f + y * 0.01f) * 0.3f + 0.7f;
-                
+
                 // Data pulses on grid
                 float pulse = 0.0f;
                 if (fmodf(anim_time * 50.0f + x + y, 400.0f) < 10.0f) pulse = 1.0f;
-                
+
                 DrawHexOutline
                 (
                     {x + x_off - bg_offset, static_cast<float>(y)},
@@ -126,20 +128,21 @@ namespace
         {
             float px = fmodf(static_cast<float>(i * 317) + time * 15.0f * (1.0f + (i % 2) * 0.5f), 900.0f) - 100.0f;
             float py = fmodf(static_cast<float>(i * 253) - time * 10.0f * (1.0f + (i % 3) * 0.3f) + 900.0f, 900.0f) - 100.0f;
-            
+
             // Mouse dodge logic
             float dx = px - mpos.x;
             float dy = py - mpos.y;
             float dist = sqrtf(dx*dx + dy*dy);
-            if (dist < 150.0f && dist > 1.0f) {
+            if (dist < 150.0f && dist > 1.0f)
+            {
                 float force = (150.0f - dist) / 150.0f;
                 px += (dx / dist) * force * 50.0f;
                 py += (dy / dist) * force * 50.0f;
                 // Draw connecting wire
                 DrawLineEx({px, py}, mpos, 1.5f * force, ColorAlpha({0, 255, 255, 255}, force * 0.5f));
             }
-            
-            t_Gate dummy;
+
+            t_Gate dummy{};
             dummy.type = static_cast<GateType>(i % 7);
             DrawGateShape(dummy, px, py, 65.0f, 65.0f * 1.732f * 0.75f, 0, (dist < 150.0f) ? 0.6f : 0.15f);
         }
@@ -243,7 +246,7 @@ namespace
 
             Color char_color;
             bool is_glitch = GetRandomValue(0, 100) > 97;
-            
+
             if (i < 3)
             {
                 char_color = ColorAlpha({0, 255, 255, 255}, 255 * alpha);
@@ -253,8 +256,9 @@ namespace
                 float glow_pulse = 0.7f + 0.3f * sinf(anim_time * 3.0f + i * 0.5f);
                 char_color = ColorAlpha({255, 255, 255, 255}, 255 * alpha * glow_pulse);
             }
-            
-            if (is_glitch) {
+
+            if (is_glitch)
+            {
                 float gx = GetRandomValue(-4, 4);
                 DrawTextEx(font, ch, {draw_x + gx, draw_y}, 72.0f * scale, char_spacing, RED);
                 DrawTextEx(font, ch, {draw_x - gx, draw_y}, 72.0f * scale, char_spacing, BLUE);
@@ -282,25 +286,29 @@ namespace
     void DrawCRTAndMouseTrail()
     {
         // CRT Scanlines
-        for (int y = 0; y < SCREEN_HEIGHT; y += 4) {
+        for (int y = 0; y < SCREEN_HEIGHT; y += 4)
+        {
             DrawLine(0, y, SCREEN_WIDTH, y, ColorAlpha(BLACK, 0.3f));
         }
-        
+
         // Edge Vignette
-        for (int i = 0; i < 40; i++) {
+        for (int i = 0; i < 40; i++)
+        {
             DrawRectangleLines(i, i, SCREEN_WIDTH - i*2, SCREEN_HEIGHT - i*2, ColorAlpha(BLACK, 0.05f));
         }
 
         // Mouse Trail
         static Vector2 trail[15];
         Vector2 mpos = GetMousePosition();
-        
+
         // Shift trail
         for (int i = 14; i > 0; i--) trail[i] = trail[i-1];
         trail[0] = mpos;
-        
-        for (int i = 0; i < 14; i++) {
-            if (trail[i].x != 0 && trail[i+1].x != 0) {
+
+        for (int i = 0; i < 14; i++)
+        {
+            if (trail[i].x != 0 && trail[i+1].x != 0)
+            {
                 float alpha = 1.0f - (static_cast<float>(i) / 14.0f);
                 DrawLineEx(trail[i], trail[i+1], 2.0f * alpha, ColorAlpha({0, 255, 200, 255}, alpha));
                 DrawCircleV(trail[i], 1.5f * alpha, ColorAlpha({0, 255, 255, 255}, alpha));
@@ -464,21 +472,21 @@ void DrawTitleScreen(float anim_time, float transition_time)
     {
         float t = transition_time / 0.8f;
         if (t > 1.0f) t = 1.0f;
-        
+
         // Circular wipe effect
         float max_radius = 1200.0f;
         float radius = t * max_radius;
-        
+
         // Draw expanding hole by drawing thick circles outside
         for (int i = 0; i < 40; i++)
         {
             DrawCircleLines(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, radius + i, {13, 13, 26, 255});
         }
-        
+
         // Fade to game background
         DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ColorAlpha({13, 13, 26, 255}, t * t));
     }
-    
+
     DrawCRTAndMouseTrail();
 }
 
@@ -487,12 +495,14 @@ void DrawHowToPlay(float anim_time, float transition_time)
     ClearBackground({13, 13, 26, 255});
 
     // Add very faint background so it's not totally empty but not distracting
-    for (int i = 0; i < 40; i++) {
+    for (int i = 0; i < 40; i++)
+    {
         DrawRectangleLines(i, i, SCREEN_WIDTH - i*2, SCREEN_HEIGHT - i*2, ColorAlpha(SKYBLUE, 0.02f));
     }
-    
+
     // 5. Slow Drift BG: drifting faint gates
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         float px = fmodf(static_cast<float>(i * 412) + anim_time * 8.0f * (1.0f + (i % 2) * 0.5f), 900.0f) - 100.0f;
         float py = fmodf(static_cast<float>(i * 333) - anim_time * 5.0f * (1.0f + (i % 3) * 0.3f) + 900.0f, 900.0f) - 100.0f;
         t_Gate dummy; dummy.type = static_cast<GateType>(i % 7);
@@ -504,7 +514,15 @@ void DrawHowToPlay(float anim_time, float transition_time)
     float header_pulse = 0.7f + 0.3f * sinf(anim_time * 2.0f);
     const char* title_text = "HOW TO PLAY";
     Vector2 title_size = MeasureTextEx(font, title_text, 40, 1);
-    DrawTextShadowed(font, title_text, (SCREEN_WIDTH - title_size.x) / 2.0f, 25, 40, ColorAlpha({0, 255, 255, 255}, header_pulse));
+    DrawTextShadowed
+    (
+        font, 
+        title_text, 
+        (SCREEN_WIDTH - title_size.x) / 2.0f, 
+        25, 
+        40, 
+        ColorAlpha({0, 255, 255, 255}, header_pulse)
+    );
 
     const char* subtitle = "Your guide to building circuits with logic gates";
     Vector2 sub_size = MeasureTextEx(font, subtitle, 15.0f, 1.0f);
@@ -522,15 +540,13 @@ void DrawHowToPlay(float anim_time, float transition_time)
         {60, line_y}, {660, line_y},
         1.5f, ColorAlpha({0, 200, 255, 255}, 0.35f)
     );
-
     int y = 120;
 
-    // --- VISUAL GOAL SECTION ---
     const char* h1 = "THE GOAL";
     Vector2 h1_size = MeasureTextEx(font, h1, 22, 1);
     float h1_x = (SCREEN_WIDTH - h1_size.x) / 2.0f;
     DrawTextShadowed(font, h1, h1_x, y, 22, {0, 255, 255, 255});
-    // 3. Hex Borders (instead of flat rect)
+    
     DrawPoly({h1_x - 15.0f, y + 12.0f}, 6, 8.0f, 90.0f, ColorAlpha({0, 255, 255, 255}, 0.8f));
     DrawPolyLinesEx({h1_x - 15.0f, y + 12.0f}, 6, 8.0f, 90.0f, 2.0f, {0, 255, 255, 255});
     y += 32;
@@ -540,63 +556,64 @@ void DrawHowToPlay(float anim_time, float transition_time)
     DrawTextShadowed(font, goal_txt, (SCREEN_WIDTH - goal_size.x) / 2.0f, y, 15, {220, 230, 245, 255});
     y += 40;
 
-    // Draw a fake mini-circuit
     float cx = SCREEN_WIDTH / 2.0f, cy = y + 30;
-    
-    // 1. Live Demo logic
+
     static int demo_in1 = 1;
     static int demo_in2 = 1;
     Rectangle r1 = {cx - 80, cy - 25, 30, 20};
     Rectangle r2 = {cx - 80, cy + 5, 30, 20};
-    
+
     Vector2 mp = GetMousePosition();
     bool hov1 = CheckCollisionPointRec(mp, r1);
     bool hov2 = CheckCollisionPointRec(mp, r2);
-    
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) 
+    {
         if (hov1) { demo_in1 ^= 1; } // Optional: play sound if we included audio.h
         if (hov2) { demo_in2 ^= 1; }
     }
-    
+
     int demo_out = demo_in1 & demo_in2; // AND gate
-    
+
     // Input nodes
     DrawRectangleRounded(r1, 0.5f, 4, demo_in1 ? Color{0, 255, 255, 100} : Color{100, 100, 100, 100});
     if (hov1) DrawRectangleRoundedLines(r1, 0.5f, 4, WHITE);
     DrawTextShadowed(font, demo_in1 ? "1" : "0", cx - 70, cy - 23, 16, WHITE);
-    
+
     DrawRectangleRounded(r2, 0.5f, 4, demo_in2 ? Color{0, 255, 255, 100} : Color{100, 100, 100, 100});
     if (hov2) DrawRectangleRoundedLines(r2, 0.5f, 4, WHITE);
     DrawTextShadowed(font, demo_in2 ? "1" : "0", cx - 70, cy + 7, 16, WHITE);
-    
-    // Wires & 4. Data Particles
+
     float wire_pulse1 = demo_in1 ? (sinf(anim_time * 8.0f) + 1.0f) * 0.5f : 0.2f;
     float wire_pulse2 = demo_in2 ? (sinf(anim_time * 8.0f) + 1.0f) * 0.5f : 0.2f;
     float wire_pulse_out = demo_out ? (sinf(anim_time * 8.0f) + 1.0f) * 0.5f : 0.2f;
-    
+
     DrawLineEx({cx - 50, cy - 15}, {cx - 20, cy - 15}, 3.0f, demo_in1 ? ColorAlpha(RED, wire_pulse1) : DARKGRAY);
     DrawLineEx({cx - 50, cy + 15}, {cx - 20, cy + 15}, 3.0f, demo_in2 ? ColorAlpha(RED, wire_pulse2) : DARKGRAY);
     DrawLineEx({cx + 20, cy}, {cx + 60, cy}, 3.0f, demo_out ? ColorAlpha(RED, wire_pulse_out) : DARKGRAY);
-    
+
     float flow = fmodf(anim_time * 1.5f, 1.0f);
     if (demo_in1) DrawCircleV({cx - 50 + flow * 30.0f, cy - 15}, 2.0f, WHITE);
     if (demo_in2) DrawCircleV({cx - 50 + flow * 30.0f, cy + 15}, 2.0f, WHITE);
     if (demo_out) DrawCircleV({cx + 20 + flow * 40.0f, cy}, 2.0f, WHITE);
-    
+
     // Gate
     t_Gate mock_gate; mock_gate.type = GateType::AND;
     DrawGateShape(mock_gate, cx - 20, cy - 20 * 1.732f * 0.75f, 40, 40 * 1.732f * 0.75f, demo_out, 1.0f);
-    
+
     // Output
     DrawRectangleRounded({cx + 60, cy - 15, 30, 30}, 0.5f, 4, demo_out ? Color{0, 255, 100, 150} : Color{100, 100, 100, 150});
     DrawTextShadowed(font, demo_out ? "1" : "0", cx + 70, cy - 8, 20, WHITE);
-    
-    if (demo_out) {
+
+    if (demo_out)
+    {
         DrawTextShadowed(font, "TARGET MET!", cx + 100, cy - 5, 16, {0, 255, 100, 255});
-    } else {
+    }
+    else
+    {
         DrawTextShadowed(font, "Click inputs to solve ->", cx - 240, cy - 5, 12, {150, 150, 150, 200});
     }
-    
+
     y += 90;
 
     // --- CONTROLS SECTION ---
@@ -609,7 +626,7 @@ void DrawHowToPlay(float anim_time, float transition_time)
     y += 32;
 
     int col1 = cx - 180, col2 = cx + 50;
-    
+
     // Left click
     DrawRectangleRounded({static_cast<float>(col1), static_cast<float>(y), 24, 30}, 0.5f, 4, {100, 150, 200, 50});
     DrawRectangleRounded({static_cast<float>(col1), static_cast<float>(y), 11, 14}, 0.5f, 4, {0, 255, 200, 200}); // L-click highlight
@@ -621,18 +638,18 @@ void DrawHowToPlay(float anim_time, float transition_time)
     DrawRectangleRounded({static_cast<float>(col2 + 13), static_cast<float>(y), 11, 14}, 0.5f, 4, {255, 100, 100, 200}); // R-click highlight
     DrawTextShadowed(font, "RIGHT CLICK", col2 + 35, y + 8, 14, {255, 100, 100, 255});
     DrawTextShadowed(font, "Delete Gate", col2 + 35, y + 22, 12, {200, 215, 235, 180});
-    
+
     y += 45;
 
     // Drag / Keys
     DrawRectangleRounded({static_cast<float>(col1), static_cast<float>(y), 24, 20}, 0.2f, 4, {200, 150, 50, 150});
     DrawTextShadowed(font, "DRAG", col1 + 35, y + 4, 14, {255, 200, 50, 255});
     DrawTextShadowed(font, "Move Gate", col1 + 35, y + 18, 12, {200, 215, 235, 180});
-    
+
     DrawRectangleRounded({static_cast<float>(col2), static_cast<float>(y), 24, 20}, 0.2f, 4, {200, 150, 255, 150});
     DrawTextShadowed(font, "KEYS 1-4", col2 + 35, y + 4, 14, {200, 150, 255, 255});
     DrawTextShadowed(font, "Quick Toggle Input Bits", col2 + 35, y + 18, 12, {200, 215, 235, 180});
-    
+
     y += 55;
 
     // --- GATE CHEAT SHEET ---
@@ -644,7 +661,8 @@ void DrawHowToPlay(float anim_time, float transition_time)
     DrawPolyLinesEx({h3_x - 15.0f, y + 12.0f}, 6, 8.0f, 90.0f, 2.0f, {255, 100, 200, 255});
     y += 32;
 
-    const char* gate_desc[] = {
+    const char* gate_desc[] =
+    {
         "Both = 1", "Either = 1", "Flip bit", "Differ = 1",
         "NOT AND", "NOT OR", "Same = 1"
     };
@@ -657,22 +675,21 @@ void DrawHowToPlay(float anim_time, float transition_time)
     {
         t_Gate dg; dg.type = static_cast<GateType>(i);
         float gx = start_x + i * spacing;
-        
-        // 2. Hover Secrets
         Rectangle g_rect = {gx - 25, static_cast<float>(y), 50, 50 * 1.732f * 0.75f};
         bool is_hov = CheckCollisionPointRec(mp, g_rect);
         if (is_hov) hovered_gate = i;
-        
+
         float scale = is_hov ? 1.2f : 1.0f;
         float gw = 50 * scale;
         float gh = 50 * 1.732f * 0.75f * scale;
         DrawGateShape(dg, gx - gw/2, y + (50 * 1.732f * 0.75f - gh)/2, gw, gh, is_hov ? 1 : 0, is_hov ? 1.0f : 0.8f);
-        
+
         Vector2 text_size = MeasureTextEx(font, gate_desc[i], 11, 1);
         DrawTextShadowed(font, gate_desc[i], static_cast<int>(gx - text_size.x/2), y + 45, 11, {200, 215, 235, 180});
     }
 
-    if (hovered_gate != -1) {
+    if (hovered_gate != -1)
+    {
         float hx = start_x + hovered_gate * spacing;
         float hy = y + 80.0f;
         const char* tip = "LOGIC CORE";
@@ -683,7 +700,7 @@ void DrawHowToPlay(float anim_time, float transition_time)
         if (hovered_gate == 4) tip = "Out=0 if IN1=1 and IN2=1";
         if (hovered_gate == 5) tip = "Out=0 if IN1=1 or IN2=1";
         if (hovered_gate == 6) tip = "Out=1 if inputs match";
-        
+
         Vector2 tip_s = MeasureTextEx(font, tip, 15, 1);
         DrawRectangleRounded({hx - tip_s.x/2 - 15.0f, hy - 18.0f, tip_s.x + 30.0f, 36.0f}, 0.5f, 4, ColorAlpha(BLACK, 0.9f));
         DrawRectangleRoundedLines({hx - tip_s.x/2 - 15.0f, hy - 18.0f, tip_s.x + 30.0f, 36.0f}, 0.5f, 4, {255, 100, 200, 255});
@@ -709,12 +726,12 @@ void DrawHowToPlay(float anim_time, float transition_time)
         (SCREEN_WIDTH - jump_size.x) / 2.0f, 650, 11,
         ColorAlpha({150, 180, 220, 255}, play_alpha)
     );
-    
+
     if (transition_time > 0.0f)
     {
         float t = transition_time / 0.8f;
         if (t > 1.0f) t = 1.0f;
-        
+
         float max_radius = 1200.0f;
         float radius = t * max_radius;
         for (int i = 0; i < 40; i++)
