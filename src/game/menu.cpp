@@ -10,7 +10,7 @@
 
 namespace
 {
-    const char* funny_taglines[11] =
+    constexpr std::array funny_taglines =
     {
         "Where logic gates come to party",
         "Now with 100% more AND-ing",
@@ -830,7 +830,7 @@ void DrawHowToPlay(float anim_time, float transition_time)
     DrawPolyLinesEx({gates_header_x - 15.0f, y + 12.0f}, 6, 8.0f, 90.0f, 2.0f, {255, 100, 200, 255});
     y += 8;
 
-    const char* gate_descriptions[] =
+    constexpr std::array gate_descriptions =
     {
         "Both inputs = 1", "Either input = 1", "Flips the input bit",
         "Inputs differ", "NOT both = 1", "Neither = 1", "Inputs match"
@@ -1124,10 +1124,10 @@ void DrawLevelComplete(float anim_time, float transition_time, const GameStats& 
     {
         title_idx = GetRandomValue(0, 5);
     }
-    const char* title = titles[title_idx];
+    auto title = titles[title_idx];
 
     // Funny Ranks
-    const char* rank = "Silicon Wizard";
+    std::string_view rank = "Silicon Wizard";
     Color rank_col = {0, 255, 255, 255};
     if (stats.efficiency_score < 5000) { rank = "Magic Smoke Releaser"; rank_col = RED; }
     else if (stats.efficiency_score < 7000) { rank = "Spaghetti Chef"; rank_col = ORANGE; }
@@ -1296,7 +1296,7 @@ void DrawLevelComplete(float anim_time, float transition_time, const GameStats& 
         y_pos += 55 * scale; // Pushed down further
 
         // Glowing box for Rank
-        std::snprintf(buf, sizeof(buf), "Rank: %s", rank);
+        std::snprintf(buf, sizeof(buf), "Rank: %s", rank.data());
         float rw = MeasureTextEx(font, buf, 20 * scale, 1).x;
         Rectangle rank_rect = {(SCREEN_WIDTH - rw)/2 - 20*scale, y_pos - 8*scale, rw + 40*scale, 36*scale};
         DrawRectangleRounded(rank_rect, 0.3f, 8, ColorAlpha(rank_col, 0.2f + 0.1f * r_pulse));
