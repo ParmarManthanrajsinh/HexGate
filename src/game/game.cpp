@@ -242,12 +242,9 @@ void Game::Draw()
         (
             game_state == GameState::TITLE_SCREEN ||
             game_state == GameState::TITLE_TO_PLAY_TRANSITION ||
-            game_state == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION
+            game_state == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION ||
+            game_state == GameState::PLAYING_TO_TITLE_TRANSITION
         )
-        {
-            DrawTitleScreen(anim_time, transition_time);
-        }
-        else if (game_state == GameState::PLAYING_TO_TITLE_TRANSITION)
         {
             DrawTitleScreen(anim_time, transition_time);
         }
@@ -260,6 +257,7 @@ void Game::Draw()
         {
             DrawHowToPlay(anim_time, transition_time);
         }
+        robot.Draw(anim_time, mouse_pos);
         EndDrawing();
         return;
     }
@@ -511,10 +509,6 @@ void Game::Draw()
     }
 
     EndMode2D();
-
-    if (game_state == GameState::PLAYING || is_level_complete_mode) {
-        robot.Draw(anim_time, mouse_pos);
-    }
     EndTextureMode();
 
     BeginDrawing();
@@ -532,6 +526,7 @@ void Game::Draw()
         WHITE
     );
     EndShaderMode();
+    robot.Draw(anim_time, mouse_pos);
     EndDrawing();
 }
 

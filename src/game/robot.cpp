@@ -375,6 +375,38 @@ constexpr std::array diag_palette_hover =
     "You keep looking at %s. That says something about you.",
 };
 
+constexpr std::array diag_menu_greeting =
+{
+    "Welcome! Ready to hex some gates?",
+    "Click PLAY. You know you want to.",
+    "This is the title screen. Exciting, right?",
+    "I'm a robot. You're a human. Together we... solve puzzles!",
+    "Staring at the title won't solve itself. (It won't.)",
+    "The game is right there. Just click it.",
+};
+
+constexpr std::array diag_howto_intro =
+{
+    "This is how you play. Pay attention!",
+    "Gates + wires = hex magic. Got it?",
+    "Drag, drop, connect. Simple, right?",
+    "It's easier than it looks. (That's a lie.)",
+    "Study hard. There will be a test. (There won't.)",
+    "Read the instructions! I'll wait.",
+};
+
+constexpr std::array diag_howto_idle =
+{
+    "Are you still reading? It's just logic gates.",
+    "The Truth Table is your friend. A very strict friend.",
+    "1 and 1 make 1... if you use an AND gate. Keep up.",
+    "Hex is just binary wearing a trench coat.",
+    "Inputs on the left, outputs on the right. Don't cross the streams.",
+    "If you're stuck, just try pressing buttons. It works for me.",
+    "Look at the gates down there. So much potential for spaghetti.",
+    "Still confused? Join the club. The club is just you.",
+};
+
 constexpr std::array diag_session_end = 
 {
     "Going so soon? But we were having such a good time! (We weren't.)",
@@ -421,6 +453,10 @@ void Robot::UpdateAnimation(float dt, Vector2 mouse_pos)
     bot.boop_timer = std::max(0.0f, bot.boop_timer - dt);
     bot.proximity_cooldown = std::max(0.0f, bot.proximity_cooldown - dt);
 
+    // Position lerp toward screen target
+    bot.current_pos.x += (bot.target_pos.x - bot.current_pos.x) * dt * 4.0f;
+    bot.current_pos.y += (bot.target_pos.y - bot.current_pos.y) * dt * 4.0f;
+
     // Blink logic
     bot.blink_timer -= dt;
     if (bot.blink_timer <= 0) 
@@ -437,9 +473,9 @@ void Robot::UpdateAnimation(float dt, Vector2 mouse_pos)
         }
     }
 
-    // Eye tracking
-    float dx = mouse_pos.x - bot.base_pos.x;
-    float dy = mouse_pos.y - bot.base_pos.y;
+    // Eye tracking (relative to current position)
+    float dx = mouse_pos.x - bot.current_pos.x;
+    float dy = mouse_pos.y - bot.current_pos.y;
     float dist = sqrtf(dx*dx + dy*dy);
     float angle = atan2f(dy, dx);
 
@@ -498,8 +534,8 @@ void Robot::Update
     UpdateAnimation(dt, mouse_pos);
 
     // Proximity logic (gated by cooldown to prevent spam)
-    float dx = mouse_pos.x - bot.base_pos.x;
-    float dy = mouse_pos.y - bot.base_pos.y;
+    float dx = mouse_pos.x - bot.current_pos.x;
+    float dy = mouse_pos.y - bot.current_pos.y;
     float dist = sqrtf(dx*dx + dy*dy);
 
     if (dist < 30.0f)
@@ -680,7 +716,7 @@ void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 m
     }
 
     float bob = sinf(bot.anim_time * bob_speed) * bob_amp;
-    Vector2 p = { bot.base_pos.x, bot.base_pos.y + bob };
+    Vector2 p = { bot.current_pos.x, bot.current_pos.y + bob };
 
     // Boop squish (uniform scale — DrawPoly doesn't support non-uniform)
     float boop_scale = 1.0f;
@@ -881,6 +917,105 @@ void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 m
             static_cast<int>(font_size),
             ColorAlpha(WHITE, alpha)
         );
+    }
+}
+
+void Robot::SetScreen(RobotScreen screen)
+{
+    if (bot.current_screen == screen) return;
+    bot.current_screen = screen;
+    bot.screen_dialog_timer = 0.0f;
+
+    switch (screen)
+    {
+        case RobotScreen::TITLE:
+            bot.target_pos = {SCREEN_WIDTH / 2.0f + 180.0f, SCREEN_HEIGHT / 2.0f - 50.0f};
+            Speak(GetRandomDialog(diag_menu_greeting), 1, RobotMood::SASSY, 4.0f);
+            break;
+        case RobotScreen::HOW_TO_PLAY:
+            bot.target_pos = {SCREEN_WIDTH - 120.0f, SCREEN_HEIGHT / 2.0f + 40.0f};
+            Speak(GetRandomDialog(diag_howto_intro), 1, RobotMood::SASSY, 4.0f);
+            break;
+        case RobotScreen::PLAYING:
+            bot.target_pos = {660.0f, 530.0f};
+            break;
+        case RobotScreen::LEVEL_COMPLETE:
+            bot.target_pos = {680.0f, 170.0f};
+            break;
+    }
+}
+
+void Robot::Update(float dt, Vector2 mouse_pos)
+{
+    UpdateAnimation(dt, mouse_pos);
+
+    // Proximity logic
+    float dx = mouse_pos.x - bot.current_pos.x;
+    float dy = mouse_pos.y - bot.current_pos.y;
+    float dist = sqrtf(dx*dx + dy*dy);
+
+    if (dist < 30.0f)
+    {
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+        {
+            if (bot.boop_timer <= 0.0f)
+            {
+                bot.boop_timer = 0.3f;
+                PlaySfx(SfxType::ROBOT_BOOP);
+            }
+            if (bot.proximity_cooldown <= 0.0f)
+            {
+                bot.proximity_cooldown = 3.0f;
+                Speak(GetRandomDialog(diag_boop), 3, RobotMood::SURPRISED);
+            }
+        }
+    }
+    else if (dist < 75.0f)
+    {
+        if (bot.proximity_cooldown <= 0.0f)
+        {
+            bot.proximity_cooldown = 1.5f;
+            Speak(GetRandomDialog(diag_close_zone), 2, RobotMood::ANGRY);
+        }
+    }
+    else if (dist < 150.0f)
+    {
+        if (bot.proximity_cooldown <= 0.0f)
+        {
+            bot.proximity_cooldown = 1.5f;
+            Speak(GetRandomDialog(diag_near_zone), 1, RobotMood::SASSY);
+        }
+    }
+
+    // Speed detection
+    static Vector2 prev_mouse = mouse_pos;
+    float mouse_dx = mouse_pos.x - prev_mouse.x;
+    float mouse_dy = mouse_pos.y - prev_mouse.y;
+    float mouse_speed = sqrtf(mouse_dx*mouse_dx + mouse_dy*mouse_dy) / dt;
+    prev_mouse = mouse_pos;
+    static float speed_cooldown = 0.0f;
+    if (speed_cooldown > 0.0f) speed_cooldown -= dt;
+    if (mouse_speed > 3000.0f && speed_cooldown <= 0.0f)
+    {
+        speed_cooldown = 15.0f;
+        Speak(GetRandomDialog(diag_speed), 2, RobotMood::SURPRISED);
+    }
+
+    // Screen-specific periodic dialog
+    bot.screen_dialog_timer += dt;
+    if (bot.screen_dialog_timer > 20.0f)
+    {
+        bot.screen_dialog_timer = 0.0f;
+        switch (bot.current_screen)
+        {
+            case RobotScreen::TITLE:
+                Speak(GetRandomDialog(diag_menu_greeting), 1, RobotMood::SASSY);
+                break;
+            case RobotScreen::HOW_TO_PLAY:
+                Speak(GetRandomDialog(diag_howto_idle), 1, RobotMood::SASSY);
+                break;
+            default: break;
+        }
     }
 }
 

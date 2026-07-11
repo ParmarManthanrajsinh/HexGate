@@ -18,14 +18,17 @@ void Game::Update()
     {
         if (game_state == GameState::TITLE_SCREEN)
         {
+            robot.SetScreen(RobotScreen::TITLE);
             GameState next = UpdateTitleScreen(anim_time);
             if (next == GameState::TITLE_TO_PLAY_TRANSITION)
             {
+                robot.SetScreen(RobotScreen::PLAYING);
                 game_state = GameState::TITLE_TO_PLAY_TRANSITION;
                 PlaySfx(SfxType::SOLVED); // Juice for starting
             }
             else if (next == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION)
             {
+                robot.SetScreen(RobotScreen::HOW_TO_PLAY);
                 game_state = GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION;
                 PlaySfx(SfxType::SOLVED);
             }
@@ -73,14 +76,17 @@ void Game::Update()
         }
         else if (game_state == GameState::HOW_TO_PLAY)
         {
+            robot.SetScreen(RobotScreen::HOW_TO_PLAY);
             GameState next = UpdateHowToPlay(anim_time);
             if (next == GameState::HOW_TO_PLAY_TO_TITLE_TRANSITION)
             {
+                robot.SetScreen(RobotScreen::TITLE);
                 game_state = GameState::HOW_TO_PLAY_TO_TITLE_TRANSITION;
                 PlaySfx(SfxType::SOLVED);
             }
             else if (next == GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION)
             {
+                robot.SetScreen(RobotScreen::PLAYING);
                 game_state = GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION;
                 PlaySfx(SfxType::SOLVED); // Juice for starting
             }
@@ -88,14 +94,17 @@ void Game::Update()
 
         else if (game_state == GameState::LEVEL_COMPLETE)
         {
+            robot.SetScreen(RobotScreen::LEVEL_COMPLETE);
             GameState next = UpdateLevelComplete(anim_time, last_stats);
             if (next == GameState::LEVEL_COMPLETE_TO_PLAY_TRANSITION)
             {
+                robot.SetScreen(RobotScreen::PLAYING);
                 game_state = GameState::LEVEL_COMPLETE_TO_PLAY_TRANSITION;
                 PlaySfx(SfxType::SOLVED);
             }
             else if (next == GameState::LEVEL_COMPLETE_TO_TITLE_TRANSITION)
             {
+                robot.SetScreen(RobotScreen::TITLE);
                 game_state = GameState::LEVEL_COMPLETE_TO_TITLE_TRANSITION;
                 PlaySfx(SfxType::SOLVED);
             }
@@ -135,6 +144,8 @@ void Game::Update()
         float dt = GetFrameTime();
         anim_time += dt;
         if (screen_shake_time > 0) screen_shake_time -= dt;
+        mouse_pos = GetMousePosition();
+        robot.Update(dt, mouse_pos);
         return;
     }
 
@@ -149,6 +160,7 @@ void Game::Update()
             level_complete_delay -= GetFrameTime();
             if (level_complete_delay <= 0)
             {
+                robot.SetScreen(RobotScreen::LEVEL_COMPLETE);
                 game_state = GameState::PLAYING_TO_LEVEL_COMPLETE_TRANSITION;
                 transition_time = 0;
                 PlaySfx(SfxType::SOLVED); // swoosh sound for menu transition
@@ -267,6 +279,7 @@ void Game::Update()
         selected_gate_index = -1;
         wire_drag_state = {};
         robot.OnSessionEnd(gates.size(), wires.size());
+        robot.SetScreen(RobotScreen::TITLE);
         game_state = GameState::PLAYING_TO_TITLE_TRANSITION;
         transition_time = 0;
         PlaySfx(SfxType::SOLVED);

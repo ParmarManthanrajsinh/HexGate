@@ -5,10 +5,14 @@
 #include "hex_grid.h" // IWYU pragma: keep
 
 enum class RobotMood { IDLE, HAPPY, ANGRY, SURPRISED, SAD, EXCITED, SASSY };
+enum class RobotScreen { TITLE, HOW_TO_PLAY, PLAYING, LEVEL_COMPLETE };
 
 struct t_HexBot
 {
     Vector2 base_pos = {660, 530};
+    Vector2 current_pos = {660, 530};
+    Vector2 target_pos = {660, 530};
+    RobotScreen current_screen = RobotScreen::PLAYING;
     RobotMood current_mood = RobotMood::IDLE;
 
     // Animation state
@@ -51,6 +55,9 @@ struct t_HexBot
     // Phase 4 tracking
     float last_palette_hover_time = -100.0f;
     int last_palette_hover_type = -1;
+    
+    // Screen dialog timer
+    float screen_dialog_timer = 0.0f;
 };
 
 class Robot
@@ -69,6 +76,8 @@ public:
     );
 
     void Draw(float game_anim_time, Vector2 mouse_pos);
+    void Update(float dt, Vector2 mouse_pos);
+    void SetScreen(RobotScreen screen);
 
     // Event Hooks
     void OnGatePlaced(GateType type, int total_gates);
@@ -89,7 +98,7 @@ public:
     void OnSessionEnd(int total_gates, int total_wires);
 
     RobotMood GetMood() const { return bot.current_mood; }
-    Vector2 GetPos() const { return bot.base_pos; }
+    Vector2 GetPos() const { return bot.current_pos; }
 
 private:
     t_HexBot bot;
