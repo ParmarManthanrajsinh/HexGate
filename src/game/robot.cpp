@@ -523,7 +523,6 @@ void Robot::Update
         if (bot.proximity_cooldown <= 0.0f)
         {
             bot.proximity_cooldown = 1.5f;
-            PlaySfx(SfxType::ROBOT_BOOP);
             Speak(GetRandomDialog(diag_close_zone), 2, RobotMood::ANGRY);
         }
     }
@@ -549,7 +548,6 @@ void Robot::Update
         if (bot.proximity_cooldown <= 0.0f)
         {
             bot.proximity_cooldown = 1.5f;
-            PlaySfx(SfxType::ROBOT_BOOP);
             Speak(GetRandomDialog(diag_near_zone), 1, RobotMood::SASSY);
         }
     }
@@ -760,8 +758,8 @@ void Robot::Draw([[maybe_unused]]float game_anim_time, [[maybe_unused]]Vector2 m
     Color meter_color = 
         (bot.trust > 70) ? Color{50, 255, 100, 255} : 
         ((bot.trust > 30) ? Color{255, 200, 50, 255} : Color{255, 50, 50, 255});
-    DrawRectangle(p.x - meter_w/2, p.y + 25, meter_w, 4, ColorAlpha(BLACK, 0.8f));
-    DrawRectangle(p.x - meter_w/2, p.y + 25, meter_w * (bot.trust / 100.0f), 4, meter_color);
+    DrawRectangle((int)(p.x - meter_w/2), (int)(p.y + 40), (int)meter_w, 4, ColorAlpha(BLACK, 0.8f));
+    DrawRectangle((int)(p.x - meter_w/2), (int)(p.y + 40), (int)(meter_w * (bot.trust / 100.0f)), 4, meter_color);
 
     // Draw Speech Bubble
     if (bot.dialog_timer > 0)
