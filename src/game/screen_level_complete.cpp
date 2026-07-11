@@ -200,8 +200,10 @@ void DrawLevelComplete(float anim_time, float transition_time, const GameStats& 
     else if (stats.efficiency_score < 9500) { rank = "Solid Developer"; rank_col = GREEN; }
 
     static float state_time = 0;
-    if (game_state == GameState::LEVEL_COMPLETE) state_time += GetFrameTime();
-    else state_time = 0;
+    if (game_state == GameState::LEVEL_COMPLETE) 
+        state_time += GetFrameTime();
+    else 
+        state_time = 0;
 
     bool is_outbound =
     (
