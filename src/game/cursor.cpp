@@ -17,75 +17,54 @@ namespace
         Color state_color,
         float glow_alpha,
         float anim_time,
-        float speed,
-        Vector2 move_dir
+        float speed
     )
     {
         float bob = sinf(anim_time * 2.5f) * 0.8f * s;
         Vector2 tip = {pos.x, pos.y + bob};
 
         float speed_norm = fminf(speed / 800.0f, 1.0f);
-        float stretch = 1.0f + speed_norm * 0.25f;
-        float tilt = speed_norm * 0.12f * move_dir.x;
+        float stretch = 1.0f + speed_norm * 0.2f;
 
         float w = 10.0f * s;
         float h = 20.0f * s * stretch;
 
         Vector2 p1 = tip;
-        Vector2 p2 = {tip.x - w, tip.y + h};
-        Vector2 p3 = {tip.x - w * 0.25f, tip.y + h * 0.85f};
-        Vector2 p4 = {tip.x + w * 0.65f, tip.y + h * 0.65f};
-
-        if (tilt != 0.0f)
-        {
-            float ct = cosf(tilt);
-            float st = sinf(tilt);
-            auto rotate = [&](Vector2 p) -> Vector2
-            {
-                float rx = (p.x - tip.x) * ct - (p.y - tip.y) * st + tip.x;
-                float ry = (p.x - tip.x) * st + (p.y - tip.y) * ct + tip.y;
-                return {rx, ry};
-            };
-            p1 = rotate(p1);
-            p2 = rotate(p2);
-            p3 = rotate(p3);
-            p4 = rotate(p4);
-        }
+        Vector2 p2 = {tip.x + w * 0.3f, tip.y + h};
+        Vector2 p3 = {tip.x + w * 0.6f, tip.y + h * 0.75f};
+        Vector2 p4 = {tip.x + w * 1.2f, tip.y + h * 0.4f};
 
         Color glow = state_color;
         glow.a = static_cast<unsigned char>(50 * glow_alpha);
         Vector2 glow_p1 = {tip.x, tip.y - 1.0f * s};
-        Vector2 glow_p2 = {tip.x - w - 1.5f, tip.y + h + 1.5f};
-        Vector2 glow_p3 = {tip.x - w * 0.25f - 1.0f, tip.y + h * 0.85f + 0.5f};
-        Vector2 glow_p4 = {tip.x + w * 0.65f + 1.0f, tip.y + h * 0.65f + 0.5f};
+        Vector2 glow_p2 = {tip.x + w * 0.3f, tip.y + h + 1.5f};
+        Vector2 glow_p3 = {tip.x + w * 0.6f + 1.0f, tip.y + h * 0.75f + 0.5f};
+        Vector2 glow_p4 = {tip.x + w * 1.2f + 1.5f, tip.y + h * 0.4f};
         DrawTriangle(glow_p1, glow_p4, glow_p2, glow);
         DrawTriangle(glow_p2, glow_p3, glow_p1, glow);
 
-        Color white_outline = WHITE;
-        white_outline.a = static_cast<unsigned char>(255 * glow_alpha);
-        float outline_w = 3.0f * s;
-        Vector2 wo_p1 = tip;
-        Vector2 wo_p2 = {tip.x - w - outline_w, tip.y + h + outline_w};
-        Vector2 wo_p3 = {tip.x - w * 0.25f - outline_w, tip.y + h * 0.85f + outline_w * 0.5f};
-        Vector2 wo_p4 = {tip.x + w * 0.65f + outline_w, tip.y + h * 0.65f + outline_w * 0.5f};
-        DrawTriangle(wo_p1, wo_p4, wo_p2, white_outline);
-        DrawTriangle(wo_p2, wo_p3, wo_p1, white_outline);
+        DrawTriangle(p1, p4, p2, {25, 35, 55, 255});
+        DrawTriangle(p2, p3, p1, {25, 35, 55, 255});
 
-        DrawTriangle(p1, p4, p2, {25, 35, 55, 240});
-        DrawTriangle(p2, p3, p1, {25, 35, 55, 240});
+        Color white_border = ColorAlpha(WHITE, 0.9f);
+        float bw = 2.5f * s;
+        DrawLineEx(p1, p2, bw, white_border);
+        DrawLineEx(p2, p3, bw, white_border);
+        DrawLineEx(p3, p4, bw, white_border);
+        DrawLineEx(p4, p1, bw, white_border);
 
         Color outline_col = state_color;
-        outline_col.a = static_cast<unsigned char>(220 * glow_alpha);
-        DrawLineEx(p1, p2, 2.0f, outline_col);
-        DrawLineEx(p2, p3, 1.5f, outline_col);
-        DrawLineEx(p3, p4, 1.5f, outline_col);
-        DrawLineEx(p4, p1, 2.0f, outline_col);
+        outline_col.a = 255;
+        DrawLineEx(p1, p2, 1.5f, outline_col);
+        DrawLineEx(p2, p3, 1.0f, outline_col);
+        DrawLineEx(p3, p4, 1.0f, outline_col);
+        DrawLineEx(p4, p1, 1.5f, outline_col);
 
         Color highlight_col = state_color;
-        highlight_col.a = static_cast<unsigned char>(100 * glow_alpha);
-        Vector2 hl_p1 = {tip.x, tip.y + 2.0f * s};
-        Vector2 hl_p2 = {tip.x - w * 0.5f, tip.y + h * 0.9f};
-        Vector2 hl_p3 = {tip.x - w * 0.15f, tip.y + h * 0.7f};
+        highlight_col.a = 100;
+        Vector2 hl_p1 = {tip.x + w * 0.05f, tip.y + h * 0.1f};
+        Vector2 hl_p2 = {tip.x + w * 0.25f, tip.y + h * 0.7f};
+        Vector2 hl_p3 = {tip.x + w * 0.7f, tip.y + h * 0.3f};
         DrawTriangle(hl_p1, hl_p3, hl_p2, highlight_col);
     }
 
@@ -426,16 +405,7 @@ void t_CustomCursor::DrawHand(float anim_time) const
         glow_alpha = 1.3f + 0.3f * sinf(state_time * 5.0f);
     }
 
-    Vector2 move_dir = {0.0f, 0.0f};
-    float dx = smooth_pos.x - prev_smooth.x;
-    float dy = smooth_pos.y - prev_smooth.y;
-    float len = sqrtf(dx * dx + dy * dy);
-    if (len > 0.5f)
-    {
-        move_dir = {dx / len, dy / len};
-    }
-
-    DrawArrowCursor(smooth_pos, scale, state_col, glow_alpha, anim_time, speed, move_dir);
+    DrawArrowCursor(smooth_pos, scale, state_col, glow_alpha, anim_time, speed);
 }
 
 void t_CustomCursor::DrawWireCarry(float anim_time) const
