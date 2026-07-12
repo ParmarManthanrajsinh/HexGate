@@ -13,7 +13,7 @@ namespace
     void DrawMuteButton(float anim_time)
     {
         Font font = GetGameFont();
-        Rectangle r = {630.0f, 8.0f, 82.0f, 24.0f};
+        Rectangle r = {8.0f, 8.0f, 82.0f, 24.0f};
         bool hovered = CheckCollisionPointRec(GetMousePosition(), r);
         bool playing = IsMusicPlaying();
 
@@ -34,9 +34,59 @@ namespace
         DrawRectangleRounded(r, 0.3f, 6, bg);
         DrawRectangleRoundedLines(r, 0.3f, 6, border);
 
-        const char* label = playing ? "SOUND [N]" : "MUTED [N]";
+        float cx = r.x + 14.0f;
+        float cy = r.y + r.height / 2.0f;
+
+        Color icon_col = playing
+            ? (hovered ? WHITE : Color{0, 220, 200, 255})
+            : (hovered ? WHITE : Color{180, 100, 100, 255});
+
+        DrawRectangle
+        (
+            static_cast<int>(cx - 1.0f),
+            static_cast<int>(cy - 4.0f),
+            5, 8, icon_col
+        );
+
+        Vector2 cone_p1 = {cx + 4.0f, cy - 6.0f};
+        Vector2 cone_p2 = {cx + 4.0f, cy + 6.0f};
+        Vector2 cone_p3 = {cx + 10.0f, cy + 9.0f};
+        Vector2 cone_p4 = {cx + 10.0f, cy - 9.0f};
+        DrawTriangle(cone_p1, cone_p3, cone_p2, icon_col);
+        DrawTriangle(cone_p2, cone_p4, cone_p1, icon_col);
+
+        if (playing)
+        {
+            float wave_pulse = 0.5f + 0.5f * sinf(anim_time * 6.0f);
+            Color wave_col = icon_col;
+            wave_col.a = static_cast<unsigned char>(180 * wave_pulse);
+
+            for (int i = 1; i <= 2; i++)
+            {
+                float r_val = static_cast<float>(i) * 5.0f;
+                DrawCircleSectorLines
+                (
+                    {cx + 10.0f, cy},
+                    r_val,
+                    -35.0f, 35.0f,
+                    12, wave_col
+                );
+            }
+        }
+        else
+        {
+            float slash_len = 8.0f;
+            DrawLineEx
+            (
+                {cx + 6.0f - slash_len, cy - slash_len},
+                {cx + 6.0f + slash_len, cy + slash_len},
+                2.5f, Color{200, 80, 80, 255}
+            );
+        }
+
+        const char* label = "[N]";
         Vector2 text_size = MeasureTextEx(font, label, 14.0f, 1.0f);
-        float tx = r.x + (r.width - text_size.x) / 2.0f;
+        float tx = r.x + r.width - text_size.x - 10.0f;
         float ty = r.y + (r.height - text_size.y) / 2.0f;
         Color text_col = playing
             ? (hovered ? WHITE : Color{150, 200, 190, 255})
@@ -167,7 +217,7 @@ GameState UpdateHowToPlay(float)
         float btn_x = (SCREEN_WIDTH - btn_w) / 2.0f;
 
         Rectangle back_btn = {btn_x, 660, btn_w, btn_h};
-        Rectangle mute_btn = {630.0f, 8.0f, 82.0f, 24.0f};
+        Rectangle mute_btn = {8.0f, 8.0f, 82.0f, 24.0f};
 
         if (CheckCollisionPointRec(mpos, mute_btn))
         {
