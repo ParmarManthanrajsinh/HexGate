@@ -35,9 +35,9 @@ Mouse:
 
 ### Screenshots
 
-![Hex Gate Screenshot 1](screenshots/screenshot1.png)
-![Hex Gate Screenshot 2](screenshots/screenshot2.png)
-![Hex Gate Screenshot 3](screenshots/screenshot3.png)
+![Hex Gate Screenshot 1](screenshots/Screenshot1.png)
+![Hex Gate Screenshot 2](screenshots/Screenshot2.png)
+![Hex Gate Screenshot 3](screenshots/Screenshot3.png)
 
 ### Developers
 
