@@ -10,6 +10,8 @@
 #include "menu.h"
 #include "wires.h"
 #include "robot.h"
+#include "tutorial.h"
+#include "save_data.h"
 
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
@@ -50,6 +52,9 @@ class Game
     private:
         // Game state
         GameState game_state;
+        t_SaveData save_data;
+        t_TutorialState tutorial;
+        bool tutorial_required;
 
         // Core state
         std::vector<t_Gate> gates;
@@ -84,6 +89,7 @@ class Game
 
         // Helpers
         void Reset(bool is_clear = false);
+        void SetupTutorial();
         void Evaluate();
         t_Gate* FindGateAt(int row, int col);
         t_Gate* FindGateById(int id);

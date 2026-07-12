@@ -508,7 +508,7 @@ void DrawPalette(int selected_index)
     );
     DrawTextCentered
     (
-        GetGameFont(), "CLEAR", clear_r, 14, clear_hovered ? WHITE : Color{255, 100, 120, 255}
+        GetGameFont(), "RESET", clear_r, 14, clear_hovered ? WHITE : Color{255, 100, 120, 255}
     );
 }
 

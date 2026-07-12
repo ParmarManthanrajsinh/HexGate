@@ -4,10 +4,13 @@ enum class GameState
 {
     TITLE_SCREEN,
     TITLE_TO_PLAY_TRANSITION,
+    TITLE_TO_TUTORIAL_TRANSITION,
     TITLE_TO_HOW_TO_PLAY_TRANSITION,
     HOW_TO_PLAY,
     HOW_TO_PLAY_TO_PLAY_TRANSITION,
     HOW_TO_PLAY_TO_TITLE_TRANSITION,
+    TUTORIAL,
+    TUTORIAL_TO_PLAY_TRANSITION,
     PLAYING,
     PLAYING_TO_TITLE_TRANSITION,
     PLAYING_TO_LEVEL_COMPLETE_TRANSITION,
@@ -27,7 +30,7 @@ struct t_GameStats
 GameState UpdateTitleScreen(float anim_time);
 GameState UpdateHowToPlay(float anim_time);
 GameState UpdateLevelComplete(float anim_time, const t_GameStats& stats);
-void DrawTitleScreen(float anim_time, float transition_time = 0.0f);
+void DrawTitleScreen(float anim_time, float transition_time = 0.0f, bool tutorial_required = false);
 void DrawHowToPlay(float anim_time, float transition_time = 0.0f);
 void DrawLevelComplete
 (

@@ -45,6 +45,10 @@ Game::Game()
   robot_obstacle_attempts(0),
   robot_matching_bits_prev(0)
 {
+    save_data = LoadSaveData();
+    tutorial_required = !save_data.tutorial_complete;
+    tutorial = {};
+    
     render_target = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
     for (int i = 0; i < 4; i++) input_bits[i] = 0;
     for (int i = 0; i < 4; i++) output_bits[i] = 0;
@@ -54,6 +58,33 @@ Game::Game()
 Game::~Game()
 {
     UnloadRenderTexture(render_target);
+}
+
+void Game::SetupTutorial()
+{
+    gates.clear();
+    wires.clear();
+    gate_outputs.clear();
+    obstacles.clear();
+    particles.clear();
+    
+    input_bits[0] = 0;
+    input_bits[1] = 1;
+    input_bits[2] = 1;
+    input_bits[3] = 0;
+    
+    target_hex = 6;
+    
+    t_HexCell obs = {3, 3};
+    obstacles.push_back(obs);
+    
+    selected_gate_index = -1;
+    dragging_gate_id = -1;
+    wire_drag_state = {};
+    solved = false;
+    
+    tutorial.current_step = 1;
+    tutorial.step_enter_time = anim_time;
 }
 
 void Game::Reset(bool is_clear)
@@ -114,7 +145,10 @@ void Game::Evaluate()
         SpawnParticles({OUTPUT_CENTER_X, OUTPUT_CENTER_Y}, {0, 255, 136, 255}, 50);
         PlaySfx(SfxType::SOLVED);
 
-        robot.OnSolved(gates.size(), wires.size(), level_timer);
+        if (game_state != GameState::TUTORIAL)
+        {
+            robot.OnSolved(gates.size(), wires.size(), level_timer);
+        }
 
         level_complete_delay = 1.5f;
         last_stats.gates_used = static_cast<int>(gates.size());
@@ -235,18 +269,22 @@ void Game::Draw()
         game_state == GameState::LEVEL_COMPLETE_TO_TITLE_TRANSITION
     );
 
-    if (game_state != GameState::PLAYING && !is_level_complete_mode)
+    if (game_state != GameState::PLAYING && 
+        game_state != GameState::TUTORIAL && 
+        game_state != GameState::TUTORIAL_TO_PLAY_TRANSITION &&
+        !is_level_complete_mode)
     {
         BeginDrawing();
         if
         (
             game_state == GameState::TITLE_SCREEN ||
             game_state == GameState::TITLE_TO_PLAY_TRANSITION ||
+            game_state == GameState::TITLE_TO_TUTORIAL_TRANSITION ||
             game_state == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION ||
             game_state == GameState::PLAYING_TO_TITLE_TRANSITION
         )
         {
-            DrawTitleScreen(anim_time, transition_time);
+            DrawTitleScreen(anim_time, transition_time, tutorial_required);
         }
         else if
         (
@@ -506,6 +544,11 @@ void Game::Draw()
 
         DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, ColorAlpha(BLACK, bg_alpha));
         DrawLevelComplete(anim_time, transition_time, last_stats, game_state);
+    }
+
+    if (game_state == GameState::TUTORIAL)
+    {
+        DrawTutorialOverlay(tutorial, anim_time, gates);
     }
 
     EndMode2D();

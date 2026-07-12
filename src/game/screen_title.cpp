@@ -381,7 +381,7 @@ GameState UpdateTitleScreen(float)
     return GameState::TITLE_SCREEN;
 }
 
-void DrawTitleScreen(float anim_time, float transition_time)
+void DrawTitleScreen(float anim_time, float transition_time, bool tutorial_required)
 {
     ClearBackground({13, 13, 26, 255});
 
@@ -453,7 +453,7 @@ void DrawTitleScreen(float anim_time, float transition_time)
     DrawHexButton
     (
         {play_btn.x, play_btn.y, play_btn.width, play_btn.height},
-        "PRESS ENTER TO PLAY",
+        tutorial_required ? "START TUTORIAL" : "PRESS ENTER TO PLAY",
         play_hovered, anim_time, {0, 255, 200, 255}
     );
     DrawHexButton

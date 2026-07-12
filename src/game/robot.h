@@ -119,6 +119,8 @@ public:
     void OnClearPressed();
     void OnSolved(int total_gates, int total_wires, float level_timer);
     void OnLevelStart(int target_hex);
+    void OnTutorialStep(int step);
+    void OnTutorialError(const std::string& error_type);
     void OnPaletteHover(GateType type);
     void OnObstacleAttempt();
     void OnWireDragCancelled();

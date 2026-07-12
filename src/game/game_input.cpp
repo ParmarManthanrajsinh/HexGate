@@ -12,6 +12,59 @@
 
 void Game::HandleClick(Vector2 pos)
 {
+    if (game_state == GameState::TUTORIAL)
+    {
+        if (tutorial.current_step == 1)
+        {
+            if (anim_time - tutorial.step_enter_time < 2.0f) return;
+            tutorial.current_step = 2;
+            tutorial.step_enter_time = anim_time;
+            robot.OnTutorialStep(tutorial.current_step);
+            return;
+        }
+        
+        if (tutorial.current_step == 2)
+        {
+            int pal_idx = PickPaletteGate(pos);
+            if (pal_idx == 1) // OR gate
+            {
+                selected_gate_index = pal_idx;
+                tutorial.current_step = 3;
+                tutorial.step_enter_time = anim_time;
+                robot.OnTutorialStep(tutorial.current_step);
+            }
+            return;
+        }
+        
+        if (tutorial.current_step == 3)
+        {
+            t_HexCell cell = GetGridCell(pos);
+            if (cell.IsValid() && selected_gate_index >= 0 && !FindGateAt(cell.row, cell.col))
+            {
+                t_Gate ng{};
+                ng.id = gate_id_counter++;
+                ng.type = static_cast<GateType>(selected_gate_index);
+                ng.row = cell.row;
+                ng.col = cell.col;
+                ng.spawn_time = anim_time;
+                gates.emplace_back(ng);
+                
+                gate_outputs[ng.id] = 0;
+                SpawnParticles(GetHexCenter(cell.row, cell.col), {0, 255, 255, 255}, 20);
+                PlaySfx(SfxType::PLACE_GATE);
+                Evaluate();
+                
+                selected_gate_index = -1;
+                tutorial.placed_gate_row = ng.row;
+                tutorial.placed_gate_col = ng.col;
+                tutorial.current_step = 4;
+                tutorial.step_enter_time = anim_time;
+                robot.OnTutorialStep(tutorial.current_step);
+            }
+            return;
+        }
+    }
+
     robot_last_action_time = anim_time;
     robot_idle_timer = 0;
     // Input node toggles removed - inputs are now locked for difficulty.
@@ -30,6 +83,27 @@ void Game::HandleClick(Vector2 pos)
             w.to_type = (clicked_pin.source_type == 1) ? 0 : 1;
             w.to_id = (clicked_pin.source_type == 1) ? clicked_pin.source_id : 0;
             w.to_pin = clicked_pin.pin_index;
+
+            if (game_state == GameState::TUTORIAL)
+            {
+                if (tutorial.current_step == 4 && (w.from_type != 0 || w.to_type != 0))
+                {
+                    wire_drag_state = {}; 
+                    robot.OnTutorialError("wrong_target_step4");
+                    return;
+                }
+                if (tutorial.current_step == 5 && (w.from_type != 1 || w.to_type != 1))
+                {
+                    wire_drag_state = {}; 
+                    robot.OnTutorialError("wrong_target_step5");
+                    return;
+                }
+                if (tutorial.current_step != 4 && tutorial.current_step != 5 && tutorial.current_step != 6)
+                {
+                    wire_drag_state = {};
+                    return;
+                }
+            }
 
             bool is_self = (w.from_type == 1 && w.to_type == 0 && w.from_id == w.to_id);
             if (!is_self)
@@ -71,6 +145,22 @@ void Game::HandleClick(Vector2 pos)
                     }
                     SpawnParticles(pos, {255, 255, 0, 255}, 15);
                     PlaySfx(SfxType::CONNECT_WIRE);
+                    
+                    if (game_state == GameState::TUTORIAL)
+                    {
+                        if (tutorial.current_step == 4)
+                        {
+                            tutorial.current_step = 5;
+                            tutorial.step_enter_time = anim_time;
+                            robot.OnTutorialStep(tutorial.current_step);
+                        }
+                        else if (tutorial.current_step == 5)
+                        {
+                            tutorial.current_step = 6;
+                            tutorial.step_enter_time = anim_time;
+                            robot.OnTutorialStep(tutorial.current_step);
+                        }
+                    }
                 }
                 else
                 {
@@ -116,6 +206,21 @@ void Game::HandleClick(Vector2 pos)
     // Start wire from output pin
     if (clicked_pin.IsValid() && !clicked_pin.is_input)
     {
+        if (game_state == GameState::TUTORIAL)
+        {
+            if (tutorial.current_step == 4 && clicked_pin.source_type != 0)
+            {
+                robot.OnTutorialError("wrong_start_step4");
+                return;
+            }
+            if (tutorial.current_step == 5 && clicked_pin.source_type != 1)
+            {
+                robot.OnTutorialError("wrong_start_step5");
+                return;
+            }
+            if (tutorial.current_step != 4 && tutorial.current_step != 5) return;
+        }
+
         Vector2 pin_pos{};
         if (clicked_pin.source_type == 0)
             pin_pos = GetInputNodeOutputPin(clicked_pin.source_id);
@@ -187,7 +292,8 @@ void Game::HandleClick(Vector2 pos)
     }
 
     // Clear button
-    if (CheckCollisionPointRec(pos, GetClearButtonRect()))
+    if (game_state == GameState::TUTORIAL) { /* no clear during tutorial */ }
+    else if (CheckCollisionPointRec(pos, GetClearButtonRect()))
     {
         for (const auto& g : gates)
         {
@@ -262,6 +368,7 @@ void Game::HandleClick(Vector2 pos)
 
 void Game::HandleRightClick(Vector2 pos)
 {
+    if (game_state == GameState::TUTORIAL) return;
     robot_last_action_time = anim_time;
     robot_idle_timer = 0;
     t_HexCell cell = GetGridCell(pos);

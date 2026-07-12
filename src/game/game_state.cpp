@@ -14,7 +14,7 @@
 
 void Game::Update()
 {
-    if (game_state != GameState::PLAYING)
+    if (game_state != GameState::PLAYING && game_state != GameState::TUTORIAL)
     {
         if (game_state == GameState::TITLE_SCREEN)
         {
@@ -23,7 +23,14 @@ void Game::Update()
             if (next == GameState::TITLE_TO_PLAY_TRANSITION)
             {
                 robot.SetScreen(RobotScreen::PLAYING);
-                game_state = GameState::TITLE_TO_PLAY_TRANSITION;
+                if (tutorial_required)
+                {
+                    game_state = GameState::TITLE_TO_TUTORIAL_TRANSITION;
+                }
+                else
+                {
+                    game_state = GameState::TITLE_TO_PLAY_TRANSITION;
+                }
                 PlaySfx(SfxType::SOLVED); // Juice for starting
             }
             else if (next == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION)
@@ -46,6 +53,34 @@ void Game::Update()
                 game_state = GameState::PLAYING;
                 transition_time = 0;
                 Reset(); // Initialize fresh board
+            }
+        }
+        else if (game_state == GameState::TITLE_TO_TUTORIAL_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::TUTORIAL;
+                transition_time = 0;
+                SetupTutorial();
+                robot.SetScreen(RobotScreen::PLAYING);
+                robot.OnTutorialStep(tutorial.current_step);
+            }
+        }
+        else if (game_state == GameState::TUTORIAL_TO_PLAY_TRANSITION)
+        {
+            float dt = GetFrameTime();
+            transition_time += dt;
+            if (transition_time >= 0.8f)
+            {
+                game_state = GameState::PLAYING;
+                transition_time = 0;
+                Reset(); // Initialize fresh board for normal play
+                
+                save_data.tutorial_complete = true;
+                tutorial_required = false;
+                SaveSaveData(save_data);
             }
         }
         else if (game_state == GameState::TITLE_TO_HOW_TO_PLAY_TRANSITION)
@@ -153,7 +188,11 @@ void Game::Update()
         return;
     }
 
-    if (!solved)
+    if (game_state == GameState::TUTORIAL)
+    {
+        level_timer += GetFrameTime();
+    }
+    else if (!solved)
     {
         level_timer += GetFrameTime();
     }
@@ -307,6 +346,19 @@ void Game::Update()
     if (wire_drag_state.IsActive() || dragging_gate_id != -1)
     {
         robot_last_action_time = anim_time;
+    }
+
+    if (game_state == GameState::TUTORIAL && tutorial.current_step >= 6)
+    {
+        float step_elapsed = anim_time - tutorial.step_enter_time;
+        if (step_elapsed >= 2.0f)
+        {
+            game_state = GameState::TUTORIAL_TO_PLAY_TRANSITION;
+            transition_time = 0;
+            PlaySfx(SfxType::SOLVED);
+            robot.OnSessionEnd(gates.size(), wires.size());
+            return;
+        }
     }
 
     robot.Update

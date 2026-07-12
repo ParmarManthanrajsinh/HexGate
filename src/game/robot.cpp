@@ -1508,6 +1508,45 @@ void Robot::OnLevelStart(int target_hex)
 {
     Speak(TextFormat(GetRandomDialog(diag_level_start).c_str(), target_hex), 2);
 }
+
+void Robot::OnTutorialStep(int step)
+{
+    if (step == 1)
+    {
+        Speak("Welcome to Hex Gate! Your goal is to make the OUTPUT match the TARGET hex value. See the 4 input bits on the left? You'll use logic gates to transform them.", 3, RobotMood::HAPPY);
+    }
+    else if (step == 2)
+    {
+        Speak("First, pick a gate from the palette at the bottom. Try the OR gate.", 3, RobotMood::IDLE);
+    }
+    else if (step == 3)
+    {
+        Speak("Now place it on the grid. Click an empty hex cell to put the gate down.", 3, RobotMood::IDLE);
+    }
+    else if (step == 4)
+    {
+        Speak("Great! Click a circle (pin) on an INPUT node, then click the OR gate's input pin on the left side.", 3, RobotMood::HAPPY);
+    }
+    else if (step == 5)
+    {
+        Speak("Now connect the gate's OUTPUT pin to the OUTPUT node so the signal reaches the target checker.", 3, RobotMood::IDLE);
+    }
+    else if (step == 6)
+    {
+        Speak("You've mastered the basics! Gates placed, wires connected. Time for the real deal!", 3, RobotMood::EXCITED);
+    }
+}
+void Robot::OnTutorialError(const std::string& error_type)
+{
+    if (error_type == "wrong_start_step4")
+        Speak("Start from the INPUT side — click one of the small glowing circles on the left!", 3, RobotMood::IDLE);
+    else if (error_type == "wrong_target_step4")
+        Speak("That's not the gate's input pin. Click the small circle on the LEFT side of your OR gate.", 3, RobotMood::IDLE);
+    else if (error_type == "wrong_start_step5")
+        Speak("Start from your gate's OUTPUT pin — the small circle on its right side.", 3, RobotMood::IDLE);
+    else if (error_type == "wrong_target_step5")
+        Speak("That's not the right target. Click one of the glowing circles on the OUTPUT node (right side).", 3, RobotMood::IDLE);
+}
 void Robot::OnPaletteHover(GateType type)
 {
     float current_time = static_cast<float>(GetTime())  ;
