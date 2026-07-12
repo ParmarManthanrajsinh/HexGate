@@ -33,7 +33,11 @@ void Game::Update()
                 PlaySfx(SfxType::SOLVED);
             }
         }
-        else if (game_state == GameState::TITLE_TO_PLAY_TRANSITION || game_state == GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION)
+        else if 
+        (
+            game_state == GameState::TITLE_TO_PLAY_TRANSITION ||
+            game_state == GameState::HOW_TO_PLAY_TO_PLAY_TRANSITION
+        )
         {
             float dt = GetFrameTime();
             transition_time += dt;
@@ -173,9 +177,12 @@ void Game::Update()
     hovered_pin = FindPinAt(mouse_pos);
     hovered_cell = GetGridCell(mouse_pos);
 
-    if (hovered_pin.IsValid()) {
+    if (hovered_pin.IsValid()) 
+    {
         robot.SetHoveredPin(&hovered_pin);
-    } else {
+    }
+    else
+    {
         robot.SetHoveredPin(nullptr);
     }
 
@@ -205,7 +212,11 @@ void Game::Update()
                 bool is_obstacle = false;
                 for (const auto& o : obstacles)
                 {
-                    if (o.row == hovered_cell.row && o.col == hovered_cell.col) { is_obstacle = true; break; }
+                    if (o.row == hovered_cell.row && o.col == hovered_cell.col)
+                    {
+                        is_obstacle = true;
+                        break;
+                    }
                 }
 
                 t_Gate* existing = FindGateAt(hovered_cell.row, hovered_cell.col);
@@ -216,7 +227,12 @@ void Game::Update()
                     {
                         g->row = hovered_cell.row;
                         g->col = hovered_cell.col;
-                        SpawnParticles(GetHexCenter(hovered_cell.row, hovered_cell.col), {0, 255, 255, 255}, 15);
+                        SpawnParticles
+                        (
+                            GetHexCenter(hovered_cell.row, hovered_cell.col),
+                            {0, 255, 255, 255},
+                            15
+                        );
                         PlaySfx(SfxType::PLACE_GATE);
                     }
                 }
@@ -228,7 +244,10 @@ void Game::Update()
 
     if (wire_drag_state.IsActive())
     {
-        if (GetRandomValue(0, 2) == 0) SpawnParticles(mouse_pos, {0, 245, 212, 200}, 1);
+        if (GetRandomValue(0, 2) == 0) 
+        {
+            SpawnParticles(mouse_pos, {0, 245, 212, 200}, 1);
+        }
     }
 
     float dt = GetFrameTime();
@@ -305,8 +324,11 @@ void Game::Update()
     {
         RobotMood mood = robot.GetMood();
         Vector2 p = robot.GetPos();
-        if (mood == RobotMood::HAPPY || mood == RobotMood::EXCITED) SpawnParticles({p.x, p.y - 40}, {255, 220, 50, 255}, 1);
-        else if (mood == RobotMood::ANGRY) SpawnParticles({p.x, p.y - 20}, {255, 50, 50, 255}, 1);
-        else if (mood == RobotMood::SURPRISED) SpawnParticles({p.x, p.y - 50}, {100, 200, 255, 255}, 1);
+        if (mood == RobotMood::HAPPY || mood == RobotMood::EXCITED) 
+            SpawnParticles({p.x, p.y - 40}, {255, 220, 50, 255}, 1);
+        else if (mood == RobotMood::ANGRY)
+            SpawnParticles({p.x, p.y - 20}, {255, 50, 50, 255}, 1);
+        else if (mood == RobotMood::SURPRISED)
+            SpawnParticles({p.x, p.y - 50}, {100, 200, 255, 255}, 1);
     }
 }

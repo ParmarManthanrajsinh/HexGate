@@ -47,8 +47,15 @@ void Game::HandleClick(Vector2 pos)
                 );
                 
                 int from_count = 0;
-                for (const auto& ex : wires) {
-                    if (ex.from_type == w.from_type && ex.from_id == w.from_id && ex.from_pin == w.from_pin) {
+                for (const auto& ex : wires)
+                {
+                    if 
+                    (
+                        ex.from_type == w.from_type &&
+                        ex.from_id == w.from_id &&
+                        ex.from_pin == w.from_pin
+                    )
+                    {
                         from_count++;
                     }
                 }
@@ -57,7 +64,8 @@ void Game::HandleClick(Vector2 pos)
                 {
                     wires.emplace_back(w);
                     robot.OnWireConnected(wires.size(), gates.size());
-                    if (!robot_first_wire_connected) {
+                    if (!robot_first_wire_connected) 
+                    {
                         robot_first_wire_connected = true;
                         robot.OnFirstWireConnected();
                     }
@@ -196,10 +204,13 @@ void Game::HandleClick(Vector2 pos)
     // Grid placement
     t_HexCell cell = GetGridCell(pos);
     bool is_obstacle = false;
-    for (const auto& o : obstacles) {
-        if (o.row == cell.row && o.col == cell.col) { 
+    for (const auto& o : obstacles) 
+    {
+        if (o.row == cell.row && o.col == cell.col) 
+        { 
             is_obstacle = true; 
-            if (selected_gate_index >= 0) {
+            if (selected_gate_index >= 0) 
+            {
                 robot.OnObstacleAttempt(); 
                 robot_obstacle_attempts++;
             }
@@ -219,7 +230,8 @@ void Game::HandleClick(Vector2 pos)
         
         robot.OnGatePlaced(ng.type, gates.size());
         robot_gate_type_counts[static_cast<int>(ng.type)]++;
-        if (!robot_first_gate_placed) {
+        if (!robot_first_gate_placed) 
+        {
             robot_first_gate_placed = true;
             robot.OnFirstGatePlaced(ng.type);
         }

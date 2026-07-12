@@ -1,13 +1,14 @@
 #pragma once
 #include <raylib.h>
 #include <string>
+#include <vector>
 #include "gates.h" // For GateType
 #include "hex_grid.h" // IWYU pragma: keep
 
 enum class RobotMood { IDLE, HAPPY, ANGRY, SURPRISED, SAD, EXCITED, SASSY };
 enum class RobotScreen { TITLE, HOW_TO_PLAY, PLAYING, LEVEL_COMPLETE };
 
-struct RobotParticle
+struct t_RobotParticle
 {
     Vector2 pos;
     Vector2 vel;
@@ -74,7 +75,7 @@ struct t_HexBot
     std::vector<Vector2> trail;
 
     // Juice state
-    std::vector<RobotParticle> particles;
+    std::vector<t_RobotParticle> particles;
     Vector2 vel = {0, 0};
     float antenna_offset = 0.0f;
     float antenna_vel = 0.0f;
