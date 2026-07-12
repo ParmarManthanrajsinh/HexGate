@@ -49,8 +49,7 @@ _TODO: Add gameplay screenshots or animated GIFs._
 
 ### Links
 
-- YouTube Gameplay: $(YouTube Link)
-- itch.io Release: $(itch.io Game Page)
+- itch.io Release: [https://parmarmanthanrajsinh.itch.io/hex-gate](https://parmarmanthanrajsinh.itch.io/hex-gate)
 
 ### License
 
